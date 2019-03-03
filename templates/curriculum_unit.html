@@ -1,0 +1,40 @@
+<html>
+<head>
+    {% from "_macros_bootstrap" import bootstrap_form_input, bootstrap_form_button with context %}
+    <meta charset="UTF-8">
+    <title>Единица учебного плана</title>
+    {% include '_header.html' %}
+</head>
+<body>
+    {% include '_menu.html' %}
+    <div class="container">
+        <h2>Единица учебного плана</h2>
+        <form method="post">
+    	    {% autoescape false %}
+            {{ bootstrap_form_input(form.stud_group) }}
+            {{ bootstrap_form_input(form.teacher) }}
+            {{ bootstrap_form_input(form.subject) }}
+            {{ bootstrap_form_input(form.hours_att_1) }}
+            {{ bootstrap_form_input(form.hours_att_2) }}
+            {{ bootstrap_form_input(form.hours_att_3) }}
+            {{ bootstrap_form_input(form.mark_type) }}
+            {% if curriculum_unit.id %}
+               {{ bootstrap_form_button(form.button_delete, class_="btn btn-danger") }}
+           {% endif %}
+           {{ bootstrap_form_button(form.button_save, class_="btn btn-success") }}
+           {% endautoescape %}
+        </form>
+        <div class="container">
+            {% if curriculum_unit.stud_group %}
+                <a href="{{ url_for('stud_group', id=curriculum_unit.stud_group.id, _anchor='curriculum_units') }}" class="btn btn-primary">Студенческая группа</a>
+
+            {% endif %}
+            {% if curriculum_unit.id %}
+                <a href="{{ url_for('att_marks', id=curriculum_unit.id) }}" class="btn btn-primary">Аттестационная ведомость</a>
+            {% endif %}
+        </div>
+    </div>
+
+
+</body>
+</html>

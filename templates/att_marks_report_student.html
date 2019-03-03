@@ -1,0 +1,141 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>БД Студенты</title>
+    {% include '_header.html' %}
+</head>
+<body>
+    {% include '_menu.html' %}
+    <div class="container">
+        <h2>Свод оценок студента</h2>
+        <dl class="row">
+            <dt class="col-sm-3">
+                Ф.И.О.:
+            </dt>
+            <dd class="col-sm-3">
+                <a href="{{ url_for('student', id=student.id) }}">{{ student.full_name }}</a>
+            </dd>
+            {% if student.stud_group %}
+                <dt class="col-sm-3">
+                    Курс:
+                </dt>
+                <dd class="col-sm-3">
+                    {{ student.stud_group.course }}
+                </dd>
+                <dt class="col-sm-3">
+                    Семестр:
+                </dt>
+                <dd class="col-sm-3">
+                    {{ student.stud_group.semester }}
+                </dd>
+                <dt class="col-sm-3">
+                    Группа:
+                </dt>
+                <dd class="col-sm-3">
+                    <a href="{{ url_for('stud_group', id=student.stud_group.id, _anchor='curriculum_units') }}">
+                        {{ student.stud_group.num_print }}
+                    </a>
+                </dd>
+            {% else %}
+                {% if student.semester %}
+                    <dt class="col-sm-3">
+                        Курс:
+                    </dt>
+                    <dd class="col-sm-3">
+                        {{ student.course }}
+                    </dd>
+                    <dt class="col-sm-3">
+                        Семестр:
+                    </dt>
+                    <dd class="col-sm-3">
+                        {{ student.semester }}
+                    </dd>
+                {% endif %}
+                {% if student.alumnus_year %}
+                    <dt class="col-sm-3">
+                        Год выпуска:
+                    </dt>
+                    <dd class="col-sm-3">
+                        {{ student.alumnus_year }}
+                    </dd>
+                {% endif %}
+                {% if student.expelled_year %}
+                    <dt class="col-sm-3">
+                        Отчислен в
+                    </dt>
+                    <dd class="col-sm-3">
+                        {{ student.expelled_year }} году
+                    </dd>
+                {% endif %}
+            {% endif %}
+        </dl>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Учебный год</th>
+                    <th>Семестр</th>
+                    <th>Курс</th>
+                    <th>Предмет</th>
+                    <th>Отчётность</th>
+                    <th>Преподаватель</th>
+                    <th>1</th>
+                    <th>2</th>
+                    <th>3</th>
+                    <th>Экзамен</th>
+                    <th>Доп. балл</th>
+                    <th>Итог. балл</th>
+                    <th>Итог</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for mark in result %}
+                    <tr>
+                        <td>{{ mark.curriculum_unit.stud_group.year_print }}</td>
+                        <td><a href="{{ url_for('att_marks_report_stud_group', id=mark.curriculum_unit.stud_group_id) }}">{{ mark.curriculum_unit.stud_group.semester }}</a></td>
+                        <td>{{ mark.curriculum_unit.stud_group.course }}</td>
+                        <td>{{ mark.curriculum_unit.subject.name }}</td>
+                        <td>{{ mark.curriculum_unit.mark_type_name[1] }}</td>
+                        <td>{{ mark.curriculum_unit.teacher.full_name_short }}</td>
+                        <td>
+                            {% if mark.att_mark_1 is not none %}
+                                {{ mark.att_mark_1 }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if mark.att_mark_2 is not none %}
+                                {{ mark.att_mark_2 }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if mark.att_mark_3 is not none %}
+                                {{ mark.att_mark_3 }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if mark.att_mark_exam is not none %}
+                                {{ mark.att_mark_exam }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if mark.att_mark_append_ball is not none %}
+                                {{ mark.att_mark_append_ball }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if mark.result_print is not none %}
+                                {{ mark.result_print[0] }}
+                            {% endif %}
+                        </td>
+                        <th>
+                            {% if mark.result_print is not none %}
+                                {{ mark.result_print[1]['value_text'] }}
+                            {% endif %}
+                        </th>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</body>
+</html>

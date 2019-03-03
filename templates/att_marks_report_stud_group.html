@@ -1,0 +1,145 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>БД Студенты</title>
+    {% include '_header.html' %}
+</head>
+<body>
+    {% include '_menu.html' %}
+    <div class="container">
+        <h2>Свод оценок рубежных аттестаций</h2>
+        <dl class="row">
+            <dt class="col-sm-3">
+                Учебный год:
+            </dt>
+            <dd class="col-sm-3">
+                {{ stud_group.year_print }}
+            </dd>
+            <dt class="col-sm-3">
+                Курс:
+            </dt>
+            <dd class="col-sm-3">
+                {{ stud_group.course }}
+            </dd>
+            <dt class="col-sm-3">
+                Семестр:
+            </dt>
+            <dd class="col-sm-3">
+                {{ stud_group.semester }}
+            </dd>
+            <dt class="col-sm-3">
+                Группа:
+            </dt>
+            <dd class="col-sm-3">
+                <a href="{{ url_for('stud_group', id=stud_group.id, _anchor='curriculum_units') }}">
+                    {{ stud_group.num_print }}
+                </a>
+            </dd>
+        </dl>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th rowspan="3">
+                        №
+                    </th>
+                    <th rowspan="3">
+                        Ф.И.О.
+                    </th>
+                    {% for cu in stud_group.curriculum_units %}
+                        <th colspan="4">{{ cu.subject.name }}</th>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    {% for cu in stud_group.curriculum_units %}
+                        <th colspan="4">{{ cu.mark_type_name[1] }}</th>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    {% for cu in stud_group.curriculum_units %}
+                        <th>1</th>
+                        <th>2</th>
+                        <th>3</th>
+                        <th>Итог</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in result %}
+                    <tr>
+                        <td>
+                            {{ loop.index }}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('att_marks_report_student', id=r['student'].id) }}">
+                                {{ r['student'].full_name_short }}
+                            </a>
+                        </td>
+                        {% for mark in r['att_marks'] %}
+                            {% if mark %}
+                                <td>
+                                    {% if mark.att_mark_1 is not none %}
+                                        {{ mark.att_mark_1 }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                   {% if mark.att_mark_2 is not none %}
+                                        {{ mark.att_mark_2 }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                   {% if mark.att_mark_3 is not none %}
+                                        {{ mark.att_mark_3 }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if mark.result_print %}
+                                        {{ mark.result_print[0] }}
+                                    {% endif %}
+                                </td>
+                            {% else %}
+                                <td>
+                                </td>
+                                <td>
+                                </td>
+                                <td>
+                                </td>
+                                <td>
+                                </td>
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+                <tfoot>
+                    <tr>
+                        <th colspan="2">
+                            Среднее
+                        </th>
+                        {% for ball_avg_col in ball_avg %}
+                            <th>
+                                {% if ball_avg_col['att_mark_1'] %}
+                                    {{ ball_avg_col['att_mark_1'] }}
+                                {% endif %}
+                            </th>
+                            <th>
+                                {% if ball_avg_col['att_mark_2'] %}
+                                    {{ ball_avg_col['att_mark_2'] }}
+                                {% endif %}
+                            </th>
+                            <th>
+                                {% if ball_avg_col['att_mark_3'] %}
+                                    {{ ball_avg_col['att_mark_3'] }}
+                                {% endif %}
+                            </th>
+                            <th>
+                                {% if ball_avg_col['total'] %}
+                                    {{ ball_avg_col['total'] }}
+                                {% endif %}
+                            </th>
+                        {% endfor %}
+                    </tr>
+                </tfoot>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

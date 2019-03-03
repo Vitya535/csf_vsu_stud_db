@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<head>
+    {% from "_macros_bootstrap" import bootstrap_form_input, bootstrap_form_button with context %}
+    <meta charset="UTF-8">
+    <title>Студенческая группа</title>
+    {% include '_header.html' %}
+</head>
+<body>
+    {% include '_menu.html' %}
+    <div class="container">
+        <h2>Студенческая группа</h2>
+        {% if group.id %}
+            <div class="container">
+                <table class="table">
+                    <tr>
+                        <th>Учебный год</th>
+                        <td>{{ group.year_print }}</td>
+                    </tr>
+                    <tr>
+                        <th>Курс</th>
+                        <td>{{ group.course }}</td>
+                    </tr>
+                    <tr>
+                        <th>Семестр</th>
+                        <td>{{ group.semester }}</td>
+                    </tr>
+                    <tr>
+                        <th>Группа</th>
+                        <td>{{ group.num_print }}</td>
+                    </tr>
+                </table>
+            </div>
+        {% endif %}
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item"><a class="nav-link" href="#edit" role="tab" data-toggle="tab">Редактирование</a></li>
+            {% if group.id %}
+                <li class="nav-item"><a class="nav-link active" href="#students" role="tab" data-toggle="tab">Список студентов</a></li>
+                <li class="nav-item"><a class="nav-link" href="#curriculum_units" role="tab" data-toggle="tab">Единицы учебного плана</a></li>
+            {% endif %}
+        </ul>
+        <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade" id="edit">
+                <h3>Редактирование</h3>
+                <form method="post" action="#edit">
+            	    {% autoescape false %}
+                    {{ bootstrap_form_input(form.year) }}
+                    {{ bootstrap_form_input(form.semester) }}
+                    {{ bootstrap_form_input(form.num) }}
+                    {{ bootstrap_form_input(form.subnum) }}
+                    {% if group.id %}
+                        {{ bootstrap_form_button(form.button_delete, class_="btn btn-danger") }}
+                    {% endif %}
+                    {{ bootstrap_form_button(form.button_save, class_="btn btn-success") }}
+                    {% endautoescape %}
+                </form>
+            </div>
+            {% if group.id %}
+                <div role="tabpanel" class="tab-pane fade show active" id="students">
+                    <h3>Список студентов</h3>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Студ. билет №</th>
+                                <th>ФИО</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for s in group.students %}
+                                <tr>
+                                    <td>{{ s.id }}</td>
+                                    <td><a href="{{ url_for('student', id=s.id) }}">{{ s.full_name }}</a></td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div role="tabpanel" class="tab-pane fade" id="curriculum_units">
+                    <h3>Единицы учебного плана</h3>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Предмет</th>
+                                <th>Преподаватель</th>
+                                <th>Отчётность</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cu in group.curriculum_units %}
+                                <tr>
+                                    <td><a href="{{ url_for('curriculum_unit', id=cu.id) }}">{{ cu.subject.name }}</a></td>
+                                    <td>{{ cu.teacher.full_name_short }}</td>
+                                    <td><a href="{{ url_for('att_marks', id=cu.id) }}">{{ cu.mark_type_name[1] }}</a></td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <div>
+                        <a href="{{url_for('att_marks_report_stud_group', id=group.id)}}" class="btn btn-primary">Свод оценок рубежных аттестаций</a>
+                        <a href="{{url_for('curriculum_unit', id='new', stud_group_id=group.id)}}" class="btn btn-primary">Добавить единицу учебного плана</a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
