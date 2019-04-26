@@ -1,3 +1,4 @@
+# Были исправлены, в соответствии с выставленными требованиями: доска в Trello и Miro, а также добавлены новые документы к проекту
 Trello
 https://trello.com/b/gZx6mGb6/tpcsf
 
@@ -13,7 +14,6 @@ https://github.com/erilya/csf_vsu_stud_db/blob/master/dokumentatsia.docx
 Распределение по ролям
 https://github.com/erilya/csf_vsu_stud_db/blob/master/raspredelenie.docx
 
-Были исправлены, в соответствии с выставленными требованиями: доска в Trello и Miro
 
 Дополнительная информация о проекте расположена в Wiki репозитории.
 
