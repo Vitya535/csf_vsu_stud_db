@@ -13,6 +13,7 @@ https://github.com/erilya/csf_vsu_stud_db/blob/master/dokumentatsia.docx
 Распределение по ролям
 https://github.com/erilya/csf_vsu_stud_db/blob/master/raspredelenie.docx
 
+Были исправлены, в соответствии с выставленными требованиями: доска в Trello и Miro
 
 Дополнительная информация о проекте расположена в Wiki репозитории.
 
