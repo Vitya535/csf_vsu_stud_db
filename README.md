@@ -4,6 +4,16 @@ https://trello.com/b/gZx6mGb6/tpcsf
 Mire
 https://realtimeboard.com/app/board/o9J_kxmDt4I=/
 
+Тестирование
+https://github.com/erilya/csf_vsu_stud_db/blob/master/testirovanie_3_lab.xlsx
+
+Документация
+https://github.com/erilya/csf_vsu_stud_db/blob/master/dokumentatsia.docx
+
+Распределение по ролям
+https://github.com/erilya/csf_vsu_stud_db/blob/master/raspredelenie.docx
+
+
 Дополнительная информация о проекте расположена в Wiki репозитории.
 
 # Система учёта аттестаций ВГУ ФКН для бакалавриата.
@@ -27,11 +37,4 @@ https://realtimeboard.com/app/board/o9J_kxmDt4I=/
 1. Вывод статистической информации о результатах аттестации по группам и по конкретному студенту
 2. Формирование бланков аттестационных ведомостей в формате odt, doc или pdf
 
-Тестирование
-https://github.com/erilya/csf_vsu_stud_db/blob/master/testirovanie_3_lab.xlsx
 
-Документация
-https://github.com/erilya/csf_vsu_stud_db/blob/master/dokumentatsia.docx
-
-Распределение по ролям
-https://github.com/erilya/csf_vsu_stud_db/blob/master/raspredelenie.docx
