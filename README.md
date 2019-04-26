@@ -33,5 +33,5 @@ https://github.com/erilya/csf_vsu_stud_db/blob/master/testirovanie_3_lab.xlsx
 Документация
 https://github.com/erilya/csf_vsu_stud_db/blob/master/dokumentatsia.docx
 
-Распределение
+Распределение по ролям
 https://github.com/erilya/csf_vsu_stud_db/blob/master/raspredelenie.docx
