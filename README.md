@@ -26,3 +26,9 @@ https://realtimeboard.com/app/board/o9J_kxmDt4I=/
 ### В приложении должно быть реализовано дополнительно:
 1. Вывод статистической информации о результатах аттестации по группам и по конкретному студенту
 2. Формирование бланков аттестационных ведомостей в формате odt, doc или pdf
+
+Тестирование
+https://github.com/erilya/csf_vsu_stud_db/blob/master/testirovanie_3_lab.xlsx
+
+Документация
+https://github.com/erilya/csf_vsu_stud_db/blob/master/dokumentatsia.docx
