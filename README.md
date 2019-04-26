@@ -15,7 +15,15 @@ https://github.com/erilya/csf_vsu_stud_db/blob/master/dokumentatsia.docx
 https://github.com/erilya/csf_vsu_stud_db/blob/master/raspredelenie.docx
 
 
+
 Дополнительная информация о проекте расположена в Wiki репозитории.
+
+Приложение, а так же вся документация разрабатывается группой студентов в рамках дисциплины "Технологии программирования"3 курса ФКН 1 группы: Еремин Илья, Дуненбаев Артем и Баженов Вадим.
+
+Ссылка на Trello: https://trello.com/b/7w3XZgNG/gymsnetwork Ссылка на RealTimeBoard: https://realtimeboard.com/app/board/o9J_kxmm3BI=/
+
+Login in GitHub:Еремин Илья erilya, Дуненбаев Артем Petizzen и Баженов Вадим Bazhen1337
+
 
 # Система учёта аттестаций ВГУ ФКН для бакалавриата.
 ## Приложение должно позволять хранить информацию о:
