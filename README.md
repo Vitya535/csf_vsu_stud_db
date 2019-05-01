@@ -9,10 +9,6 @@ https://realtimeboard.com/app/board/o9J_kxmDt4I=/
 
 Отчетный документ:
 
-
-План тестирования
-https://github.com/erilya/csf_vsu_stud_db/blob/master/testirovanie_3_lab.xlsx
-
 Документация
 https://github.com/erilya/csf_vsu_stud_db/blob/master/dokumentatsia.docx
 
