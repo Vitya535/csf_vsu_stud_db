@@ -5,8 +5,9 @@ https://trello.com/b/gZx6mGb6/tpcsf
 Mire
 https://realtimeboard.com/app/board/o9J_kxmDt4I=/
 
-План тестирования
-https://github.com/erilya/csf_vsu_stud_db/blob/master/testirovanie_3_lab.xlsx
+Техническое задание:
+
+Отчетный документ:
 
 Документация
 https://github.com/erilya/csf_vsu_stud_db/blob/master/dokumentatsia.docx
