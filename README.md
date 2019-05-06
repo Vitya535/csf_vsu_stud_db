@@ -14,6 +14,7 @@ https://github.com/erilya/csf_vsu_stud_db/blob/master/__docs/TZ.docx
 Отчетный документ:
 
 Документация:
+https://github.com/erilya/csf_vsu_stud_db/blob/master/__docs/docs.docx
 
 Распределение по ролям:
 
