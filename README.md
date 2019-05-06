@@ -5,7 +5,11 @@ https://trello.com/b/gZx6mGb6/tpcsf
 Mire
 https://realtimeboard.com/app/board/o9J_kxmDt4I=/
 
+Анализ предметной области:
+https://github.com/erilya/csf_vsu_stud_db/blob/master/__docs/%D0%90%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7%20%D0%BF%D1%80%D0%B5%D0%B4%D0%BC%D0%B5%D1%82%D0%BD%D0%BE%D0%B9%20%D0%BE%D0%B1%D0%BB%D0%B0%D1%81%D1%82%D0%B8.docx
+
 Техническое задание:
+https://github.com/erilya/csf_vsu_stud_db/blob/master/__docs/TZ.docx
 
 Отчетный документ:
 
