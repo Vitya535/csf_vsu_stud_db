@@ -4,7 +4,7 @@ https://trello.com/b/gZx6mGb6/tpcsf
 
 Mire
 https://realtimeboard.com/app/board/o9J_kxmDt4I=/
-#Итоговый отчетный документ:
+# Итоговый отчетный документ:
 https://github.com/erilya/csf_vsu_stud_db/blob/master/__docs/itog.docx
 Техническое задание:
 https://github.com/erilya/csf_vsu_stud_db/blob/master/__docs/TZ.docx
