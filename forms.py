@@ -2,7 +2,7 @@ from datetime import datetime
 
 from app_config import db
 from model import StudGroup, Subject, Teacher, Student, CurriculumUnit, AttMark, MarkType, AdminUser
-from wtforms import validators, Form, SubmitField, IntegerField, StringField, HiddenField, FormField
+from wtforms import validators, Form, SubmitField, IntegerField, StringField, HiddenField, PasswordField, FormField
 from wtforms_alchemy import ModelForm, ModelFieldList
 from wtforms_alchemy.fields import QuerySelectField
 from wtforms_alchemy.validators import Unique
@@ -92,8 +92,6 @@ class TeacherForm(_PersonForm, ModelForm):
     button_delete = SubmitField('Удалить')
 
 
-
-
 class AttMarkForm(ModelForm):
     class Meta:
         model = AttMark
@@ -159,3 +157,9 @@ class AdminUserForm(_PersonForm, ModelForm):
 
     button_save = SubmitField('Сохранить')
     button_delete = SubmitField('Удалить')
+
+
+class LoginForm(Form):
+    login = StringField('Login')
+    password = PasswordField('Пароль')
+    button_login = SubmitField('Вход')

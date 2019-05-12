@@ -1,19 +1,66 @@
 from datetime import datetime
 from flask import request, render_template, redirect, url_for
+from flask_login import LoginManager, login_required, login_user, logout_user, current_user
 
 from app_config import app, db
 from model import StudGroup, Subject, Teacher, Student, CurriculumUnit, AttMark, AdminUser
-from forms import StudGroupForm, StudentForm, StudentSearchForm, SubjectForm, TeacherForm, CurriculumUnitForm, CurriculumUnitAttMarksForm, AdminUserForm
+from forms import StudGroupForm, StudentForm, StudentSearchForm, SubjectForm, TeacherForm, CurriculumUnitForm, CurriculumUnitAttMarksForm, AdminUserForm, LoginForm
 
 from sqlalchemy import not_
 
+from password_checker import password_checker
+
+
+# flask-login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "login"
+
+
+# login page
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    form = LoginForm(request.form)
+    if form.button_login.data and form.validate():
+        user_name = form.login.data
+        user = load_user(user_name)
+        if user is not None:
+            password = form.password.data
+            if password_checker(user_name, password):
+                login_user(user)
+                return redirect(request.args.get("next") or url_for('index'))
+            else:
+                form.password.errors.append("Неверный пароль")
+        else:
+            form.login.errors.append("Пользователя с таким учётным именем не существует")
+
+    return render_template('login.html', form=form)
+
+
+@login_manager.user_loader
+def load_user(user_name):
+    user = None
+    user = user or db.session.query(AdminUser).filter(AdminUser.login == user_name).one_or_none()
+    user = user or db.session.query(Teacher).filter(Teacher.login == user_name).one_or_none()
+    user = user or db.session.query(Student).filter(Student.login == user_name).one_or_none()
+    return user
+
+
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
 
 @app.route('/')
+@login_required
 def index():
     return render_template('index.html')
 
 
 @app.route('/stud_groups')
+@login_required
 def stud_groups():
     groups = db.session.query(StudGroup). \
         filter(StudGroup.active). \
@@ -23,7 +70,11 @@ def stud_groups():
 
 
 @app.route('/stud_group/<id>', methods=['GET', 'POST'])
+@login_required
 def stud_group(id):
+    if not isinstance(current_user, AdminUser):
+        return 'Forbidden', 403
+
     if id == 'new':
         group = StudGroup()
         group.subnum = 0
@@ -85,7 +136,10 @@ def stud_group(id):
 
 
 @app.route('/student/<id>', methods=['GET', 'POST'])
+@login_required
 def student(id):
+    if not isinstance(current_user, AdminUser):
+        return 'Forbidden', 403
     if id == 'new':
         s = Student()
     else:
@@ -129,7 +183,11 @@ def student(id):
 
 
 @app.route('/students', methods=['GET'])
+@login_required
 def students():
+    if not isinstance(current_user, AdminUser):
+        return 'Forbidden', 403
+
     form = StudentSearchForm(request.args)
     result = None
     if form.button_search.data and form.validate():
@@ -162,13 +220,19 @@ def students():
 
 
 @app.route('/subjects')
+@login_required
 def subjects():
+    if not isinstance(current_user, AdminUser):
+        return 'Forbidden', 403
     s = db.session.query(Subject).order_by(Subject.name)
     return render_template('subjects.html', subjects=s)
 
 
 @app.route('/subject/<id>', methods=['GET', 'POST'])
+@login_required
 def subject(id):
+    if not isinstance(current_user, AdminUser):
+        return 'Forbidden', 403
     if id == 'new':
         s = Subject()
     else:
@@ -203,12 +267,18 @@ def subject(id):
 
 
 @app.route('/teachers')
+@login_required
 def teachers():
+    if not isinstance(current_user, AdminUser):
+        return 'Forbidden', 403
     return render_template('teachers.html', teachers=db.session.query(Teacher).order_by(Teacher.surname, Teacher.firstname, Teacher.middlename))
 
 
 @app.route('/teacher/<id>', methods=['GET', 'POST'])
+@login_required
 def teacher(id):
+    if not isinstance(current_user, AdminUser):
+        return 'Forbidden', 403
     if id == 'new':
         t = Teacher()
     else:
@@ -244,7 +314,10 @@ def teacher(id):
 
 
 @app.route('/curriculum_unit/<id>', methods=['GET', 'POST'])
+@login_required
 def curriculum_unit(id):
+    if not isinstance(current_user, AdminUser):
+        return 'Forbidden', 403
     if id == 'new':
         sg = None
         if 'stud_group_id' in request.args:
@@ -300,7 +373,10 @@ def curriculum_unit(id):
 
 
 @app.route('/att_marks/<id>', methods=['GET', 'POST'])
+@login_required
 def att_marks(id):
+    if not isinstance(current_user, AdminUser):
+        return 'Forbidden', 403
     try:
         id = int(id)
     except ValueError:
@@ -342,6 +418,7 @@ def att_marks(id):
 
 
 @app.route('/att_marks_report_stud_group/<id>')
+@login_required
 def att_marks_report_stud_group(id):
     try:
         id = int(id)
@@ -389,6 +466,7 @@ def att_marks_report_stud_group(id):
 
 
 @app.route('/att_marks_report_student/<id>')
+@login_required
 def att_marks_report_student(id):
     try:
         id = int(id)
@@ -406,14 +484,20 @@ def att_marks_report_student(id):
 
 
 @app.route('/admin_users')
+@login_required
 def admin_users():
+    if not isinstance(current_user, AdminUser):
+        return 'Forbidden', 403
     return render_template('admin_users.html',
                            admin_users=db.session.query(AdminUser).order_by(AdminUser.surname, AdminUser.firstname,
                                                                        AdminUser.middlename))
 
 
 @app.route('/admin_user/<id>', methods=['GET', 'POST'])
+@login_required
 def admin_user(id):
+    if not isinstance(current_user, AdminUser):
+        return 'Forbidden', 403
     if id == 'new':
         u = AdminUser()
     else:

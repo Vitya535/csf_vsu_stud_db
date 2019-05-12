@@ -1,0 +1,21 @@
+<html>
+<head>
+    {% from "_macros_bootstrap" import bootstrap_form_input, bootstrap_form_button with context %}
+    <meta charset="UTF-8">
+    <title>БД Студенты</title>
+    {% include '_header.html' %}
+</head>
+<body>
+    <div class="container">
+        <h2>БД Студенты</h2>
+        <h3>Вход</h3>
+        <form method="post">
+    	    {% autoescape false %}
+            {{ bootstrap_form_input(form.login) }}
+            {{ bootstrap_form_input(form.password) }}
+            {{ bootstrap_form_button(form.button_login, class_="btn btn-info") }}
+            {% endautoescape %}
+        </form>
+    </div>
+</body>
+</html>

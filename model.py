@@ -27,6 +27,22 @@ class _Person:
         return "%s %s. %s." % (self.surname, self.firstname[0], self.middlename[0]) if self.middlename is not None\
             else "%s %s." % (self.surname, self.firstname[0])
 
+    # Flask-Login Support
+    def is_active(self):
+        """True, as all users are active."""
+        return True
+
+    def get_id(self):
+        """Return the email address to satisfy Flask-Login's requirements."""
+        return self.login
+
+    def is_authenticated(self):
+        return True
+
+    def is_anonymous(self):
+        """False, as anonymous users aren't supported."""
+        return False
+
 
 class StudGroup(db.Model, _ObjectWithYear):
     __tablename__ = 'stud_group'
@@ -117,6 +133,8 @@ class Student(db.Model, _Person):
     alumnus_year = db.Column('student_alumnus_year', db.SMALLINT)
     expelled_year = db.Column('student_expelled_year', db.SMALLINT)
     login = db.Column('student_login', db.String(45), nullable=False, unique=True)
+
+
 
 
 class AdminUser(db.Model, _Person):
