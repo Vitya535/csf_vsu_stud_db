@@ -2,8 +2,8 @@ from datetime import datetime
 from flask import request, render_template, redirect, url_for
 
 from app_config import app, db
-from model import StudGroup, Subject, Teacher, Student, CurriculumUnit, AttMark
-from forms import StudGroupForm, StudentForm, StudentSearchForm, SubjectForm, TeacherForm, CurriculumUnitForm, CurriculumUnitAttMarksForm
+from model import StudGroup, Subject, Teacher, Student, CurriculumUnit, AttMark, AdminUser
+from forms import StudGroupForm, StudentForm, StudentSearchForm, SubjectForm, TeacherForm, CurriculumUnitForm, CurriculumUnitAttMarksForm, AdminUserForm
 
 from sqlalchemy import not_
 
@@ -151,6 +151,9 @@ def students():
 
         if form.expelled_year.data is not None:
             q = q.filter(Student.expelled_year == form.expelled_year.data)
+
+        if form.login.data != '':
+            q = q.filter(Student.login == form.login.data)
 
         q = q.order_by(Student.surname, Student.firstname, Student.middlename)
         result = q.all()
@@ -400,6 +403,45 @@ def att_marks_report_student(id):
         order_by(StudGroup.year, StudGroup.semester, AttMark.curriculum_unit_id).all()
 
     return render_template('att_marks_report_student.html', student=s, result=result)
+
+
+@app.route('/admin_users')
+def admin_users():
+    return render_template('admin_users.html',
+                           admin_users=db.session.query(AdminUser).order_by(AdminUser.surname, AdminUser.firstname,
+                                                                       AdminUser.middlename))
+
+
+@app.route('/admin_user/<id>', methods=['GET', 'POST'])
+def admin_user(id):
+    if id == 'new':
+        u = AdminUser()
+    else:
+        try:
+            id = int(id)
+        except ValueError:
+            return 'Bad Request', 400
+        u = db.session.query(AdminUser).filter(AdminUser.id == id).one_or_none()
+        if u is None:
+            return 'Not Found', 404
+
+    form = AdminUserForm(request.form, obj=u)
+
+    if form.button_delete.data:
+        db.session.delete(u)
+        db.session.commit()
+        db.session.flush()
+        return redirect(url_for('admin_users'))
+
+    if form.button_save.data and form.validate():
+        form.populate_obj(u)
+        db.session.add(u)
+        db.session.commit()
+        if id == 'new':
+            db.session.flush()
+            return redirect(url_for('admin_user', id=u.id))
+
+    return render_template('admin_user.html', admin_user=u, form=form)
 
 
 if __name__ == '__main__':

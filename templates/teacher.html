@@ -18,6 +18,7 @@
             {{ bootstrap_form_input(form.firstname) }}
             {{ bootstrap_form_input(form.middlename) }}
             {{ bootstrap_form_input(form.rank) }}
+            {{ bootstrap_form_input(form.login) }}
             {% if teacher.id %}
                {{ bootstrap_form_button(form.button_delete, class_="btn btn-danger") }}
            {% endif %}

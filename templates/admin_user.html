@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<head>
+    {% from "_macros_bootstrap" import bootstrap_form_input, bootstrap_form_button with context %}
+    <meta charset="UTF-8">
+    <title>Преподаватель</title>
+    {% include '_header.html' %}
+</head>
+<body>
+    {% include '_menu.html' %}
+    <div class="container">
+        <h2>Администратор</h2>
+        {% if admin_user.id %}
+            <h3>{{ admin_user.full_name }}</h3>
+        {% endif %}
+        <form method="post">
+    	    {% autoescape false %}
+            {{ bootstrap_form_input(form.surname) }}
+            {{ bootstrap_form_input(form.firstname) }}
+            {{ bootstrap_form_input(form.middlename) }}
+            {{ bootstrap_form_input(form.login) }}
+            {% if admin_user.id %}
+               {{ bootstrap_form_button(form.button_delete, class_="btn btn-danger") }}
+           {% endif %}
+           {{ bootstrap_form_button(form.button_save, class_="btn btn-success") }}
+           {% endautoescape %}
+        </form>
+    </div>
+</body>
+</html>

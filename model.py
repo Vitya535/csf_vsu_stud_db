@@ -15,7 +15,7 @@ class _ObjectWithYear:
         return "%d-%d" % (self.year, self.year+1)
 
 
-class _ObjectWithFullName:
+class _Person:
     @property
     def full_name(self):
         if self.surname is None or self.firstname is None:
@@ -59,7 +59,7 @@ class Subject(db.Model):
     name = db.Column('subject_name', db.String(45), nullable=False, unique=True)
 
 
-class Teacher(db.Model, _ObjectWithFullName):
+class Teacher(db.Model, _Person):
     __tablename__ = 'teacher'
 
     id = db.Column('teacher_id', db.INTEGER, primary_key=True, autoincrement=True)
@@ -67,6 +67,7 @@ class Teacher(db.Model, _ObjectWithFullName):
     firstname = db.Column('teacher_firstname', db.String(45), nullable=False)
     middlename = db.Column('teacher_middlename', db.String(45))
     rank = db.Column('teacher_rank', db.String(45), nullable=False)
+    login = db.Column('teacher_login', db.String(45), nullable=False, unique=True)
 
 
 # Типы отчётности для единицы учебного плана
@@ -104,8 +105,7 @@ class CurriculumUnit(db.Model):
         return MarkType[self.mark_type]
 
 
-
-class Student(db.Model, _ObjectWithFullName):
+class Student(db.Model, _Person):
     __tablename__ = 'student'
 
     id = db.Column('student_id', db.BIGINT, primary_key=True)
@@ -116,6 +116,15 @@ class Student(db.Model, _ObjectWithFullName):
     semester = db.Column('student_semestr', db.SMALLINT)
     alumnus_year = db.Column('student_alumnus_year', db.SMALLINT)
     expelled_year = db.Column('student_expelled_year', db.SMALLINT)
+    login = db.Column('student_login', db.String(45), nullable=False, unique=True)
+
+
+class AdminUser(db.Model, _Person):
+    id = db.Column('admin_user_id', db.BIGINT, primary_key=True)
+    surname = db.Column('admin_user_surname', db.String(45), nullable=False)
+    firstname = db.Column('admin_user_firstname', db.String(45), nullable=False)
+    middlename = db.Column('admin_user_middlename', db.String(45))
+    login = db.Column('admin_user_login', db.String(45), nullable=False, unique=True)
 
 
 MarkResult = [
@@ -132,6 +141,7 @@ MarkResultSimple = [
 
 MarkMinBall = 25
 MarkMaxBall = 100
+
 
 class AttMark(db.Model):
     __tablename__ = 'att_mark'
@@ -193,6 +203,6 @@ class AttMark(db.Model):
                 ball = MarkMaxBall
 
             for mr in MarkResult:
-                if ball>=mr["min"] and ball<=mr["max"]:
+                if mr["min"] <= ball <= mr["max"]:
                     return ball, mr
 

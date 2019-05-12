@@ -1,11 +1,24 @@
 from datetime import datetime
 
 from app_config import db
-from model import StudGroup, Subject, Teacher, Student, CurriculumUnit, AttMark, MarkType
+from model import StudGroup, Subject, Teacher, Student, CurriculumUnit, AttMark, MarkType, AdminUser
 from wtforms import validators, Form, SubmitField, IntegerField, StringField, HiddenField, FormField
 from wtforms_alchemy import ModelForm, ModelFieldList
 from wtforms_alchemy.fields import QuerySelectField
 from wtforms_alchemy.validators import Unique
+
+
+class _PersonForm:
+    surname = StringField('Фамилия', [validators.DataRequired()])
+    firstname = StringField('Имя', [validators.DataRequired()])
+    middlename = StringField('Отчество')
+    login = StringField('Login', [
+        validators.Optional(),
+        validators.Regexp("^[a-z0-9_]+$", message="Учётное имя может содержать только латинкие символы, цифры и знак подчёркивания"),
+        Unique(Student.login, get_session=lambda: db.session, message='Логин занят'),
+        Unique(Teacher.login, get_session=lambda: db.session, message='Логин занят'),
+        Unique(AdminUser.login, get_session=lambda: db.session, message='Логин занят')
+    ])
 
 
 class StudGroupForm(ModelForm):
@@ -22,15 +35,12 @@ class StudGroupForm(ModelForm):
     button_delete = SubmitField('Удалить')
 
 
-class StudentForm(ModelForm):
+class StudentForm(_PersonForm, ModelForm):
     class Meta:
         model = Student
         include_primary_keys = True
 
     id = IntegerField('Номер студенческого билета', [validators.DataRequired(), validators.NumberRange(min=1), Unique(Student.id, get_session=lambda: db.session, message='Номер студенческого билета занят')])
-    surname = StringField('Фамилия', [validators.DataRequired()])
-    firstname = StringField('Имя', [validators.DataRequired()])
-    middlename = StringField('Отчество')
     semester = IntegerField('Семестр', [validators.NumberRange(min=1, max=10), validators.Optional()])
     stud_group = QuerySelectField('Группа',
                                   query_factory=lambda: db.session.query(StudGroup).filter(StudGroup.active).order_by(
@@ -61,6 +71,7 @@ class StudentSearchForm(Form):
                                 [validators.NumberRange(min=2000, max=datetime.now().year + 1), validators.Optional()])
     expelled_year = IntegerField('Учебный год отчисления',
                                  [validators.NumberRange(min=2000, max=datetime.now().year + 1), validators.Optional()])
+    login = StringField('Login')
     button_search = SubmitField('Поиск')
 
 
@@ -72,16 +83,15 @@ class SubjectForm(ModelForm):
     button_delete = SubmitField('Удалить')
 
 
-class TeacherForm(ModelForm):
+class TeacherForm(_PersonForm, ModelForm):
     class Meta:
         model = Teacher
 
-    surname = StringField('Фамилия', [validators.DataRequired()])
-    firstname = StringField('Имя', [validators.DataRequired()])
-    middlename = StringField('Отчество')
     rank = StringField('Должность', [validators.DataRequired()])
     button_save = SubmitField('Сохранить')
     button_delete = SubmitField('Удалить')
+
+
 
 
 class AttMarkForm(ModelForm):
@@ -141,3 +151,11 @@ class CurriculumUnitForm(ModelForm):
 class CurriculumUnitAttMarksForm(CurriculumUnitForm):
     att_marks = ModelFieldList(FormField(AttMarkForm))
     button_clear = SubmitField('Очистить данные ведомости')
+
+
+class AdminUserForm(_PersonForm, ModelForm):
+    class Meta:
+        model = AdminUser
+
+    button_save = SubmitField('Сохранить')
+    button_delete = SubmitField('Удалить')
