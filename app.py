@@ -72,7 +72,7 @@ def stud_groups():
 @app.route('/stud_group/<id>', methods=['GET', 'POST'])
 @login_required
 def stud_group(id):
-    if not isinstance(current_user, AdminUser):
+    if current_user.role_name != 'AdminUser':
         return 'Forbidden', 403
 
     if id == 'new':
@@ -138,7 +138,7 @@ def stud_group(id):
 @app.route('/student/<id>', methods=['GET', 'POST'])
 @login_required
 def student(id):
-    if not isinstance(current_user, AdminUser):
+    if current_user.role_name != 'AdminUser':
         return 'Forbidden', 403
     if id == 'new':
         s = Student()
@@ -185,7 +185,7 @@ def student(id):
 @app.route('/students', methods=['GET'])
 @login_required
 def students():
-    if not isinstance(current_user, AdminUser):
+    if current_user.role_name != 'AdminUser':
         return 'Forbidden', 403
 
     form = StudentSearchForm(request.args)
@@ -222,7 +222,7 @@ def students():
 @app.route('/subjects')
 @login_required
 def subjects():
-    if not isinstance(current_user, AdminUser):
+    if current_user.role_name != 'AdminUser':
         return 'Forbidden', 403
     s = db.session.query(Subject).order_by(Subject.name)
     return render_template('subjects.html', subjects=s)
@@ -231,7 +231,7 @@ def subjects():
 @app.route('/subject/<id>', methods=['GET', 'POST'])
 @login_required
 def subject(id):
-    if not isinstance(current_user, AdminUser):
+    if current_user.role_name != 'AdminUser':
         return 'Forbidden', 403
     if id == 'new':
         s = Subject()
@@ -269,7 +269,7 @@ def subject(id):
 @app.route('/teachers')
 @login_required
 def teachers():
-    if not isinstance(current_user, AdminUser):
+    if current_user.role_name != 'AdminUser':
         return 'Forbidden', 403
     return render_template('teachers.html', teachers=db.session.query(Teacher).order_by(Teacher.surname, Teacher.firstname, Teacher.middlename))
 
@@ -277,7 +277,7 @@ def teachers():
 @app.route('/teacher/<id>', methods=['GET', 'POST'])
 @login_required
 def teacher(id):
-    if not isinstance(current_user, AdminUser):
+    if current_user.role_name != 'AdminUser':
         return 'Forbidden', 403
     if id == 'new':
         t = Teacher()
@@ -316,7 +316,7 @@ def teacher(id):
 @app.route('/curriculum_unit/<id>', methods=['GET', 'POST'])
 @login_required
 def curriculum_unit(id):
-    if not isinstance(current_user, AdminUser):
+    if current_user.role_name != 'AdminUser':
         return 'Forbidden', 403
     if id == 'new':
         sg = None
@@ -375,7 +375,7 @@ def curriculum_unit(id):
 @app.route('/att_marks/<id>', methods=['GET', 'POST'])
 @login_required
 def att_marks(id):
-    if not isinstance(current_user, AdminUser):
+    if current_user.role_name != 'AdminUser':
         return 'Forbidden', 403
     try:
         id = int(id)
@@ -486,7 +486,7 @@ def att_marks_report_student(id):
 @app.route('/admin_users')
 @login_required
 def admin_users():
-    if not isinstance(current_user, AdminUser):
+    if current_user.role_name != 'AdminUser':
         return 'Forbidden', 403
     return render_template('admin_users.html',
                            admin_users=db.session.query(AdminUser).order_by(AdminUser.surname, AdminUser.firstname,
@@ -496,7 +496,7 @@ def admin_users():
 @app.route('/admin_user/<id>', methods=['GET', 'POST'])
 @login_required
 def admin_user(id):
-    if not isinstance(current_user, AdminUser):
+    if current_user.role_name != 'AdminUser':
         return 'Forbidden', 403
     if id == 'new':
         u = AdminUser()

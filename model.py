@@ -85,6 +85,10 @@ class Teacher(db.Model, _Person):
     rank = db.Column('teacher_rank', db.String(45), nullable=False)
     login = db.Column('teacher_login', db.String(45), nullable=False, unique=True)
 
+    @property
+    def role_name(self):
+        return 'Teacher'
+
 
 # Типы отчётности для единицы учебного плана
 MarkType = {
@@ -134,6 +138,9 @@ class Student(db.Model, _Person):
     expelled_year = db.Column('student_expelled_year', db.SMALLINT)
     login = db.Column('student_login', db.String(45), nullable=False, unique=True)
 
+    @property
+    def role_name(self):
+        return 'Student'
 
 
 
@@ -143,6 +150,10 @@ class AdminUser(db.Model, _Person):
     firstname = db.Column('admin_user_firstname', db.String(45), nullable=False)
     middlename = db.Column('admin_user_middlename', db.String(45))
     login = db.Column('admin_user_login', db.String(45), nullable=False, unique=True)
+
+    @property
+    def role_name(self):
+        return 'AdminUser'
 
 
 MarkResult = [

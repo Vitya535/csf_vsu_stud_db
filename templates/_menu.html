@@ -7,7 +7,7 @@
          <li class="nav-item">
              <a href="{{ url_for('stud_groups') }}" class="nav-link">Студенческие группы</a>
          </li>
-         {% if current_user.__class__.__name__ == 'AdminUser' %}
+         {% if current_user.role_name == 'AdminUser' %}
             <li class="nav-item">
                 <a href="{{ url_for('students') }}" class="nav-link">Студенты</a>
             </li>
