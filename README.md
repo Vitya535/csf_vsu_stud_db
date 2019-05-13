@@ -16,9 +16,6 @@ https://github.com/erilya/csf_vsu_stud_db/blob/master/__docs/document.docx
 
 Приложение, а так же вся документация разрабатывается группой студентов в рамках дисциплины "Технологии программирования" 3 курса ФКН 1 группы: Еремин Илья, Дуненбаев Артем и Баженов Вадим.
 
-Ссылка на Trello: https://trello.com/b/7w3XZgNG/gymsnetwork 
-Ссылка на RealTimeBoard: https://realtimeboard.com/app/board/o9J_kxmm3BI=/
-
 Login in GitHub: Еремин Илья erilya, Дуненбаев Артем Petizzen и Баженов Вадим Bazhen1337
 
 
