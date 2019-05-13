@@ -8,12 +8,7 @@ https://realtimeboard.com/app/board/o9J_kxmDt4I=/
 Техническое задание:
 
 Отчетный документ:
-
-Документация
-https://github.com/erilya/csf_vsu_stud_db/blob/master/dokumentatsia.docx
-
-Распределение по ролям
-https://github.com/erilya/csf_vsu_stud_db/blob/master/raspredelenie.docx
+https://github.com/erilya/csf_vsu_stud_db/blob/master/__docs/document.docx
 
 
 
