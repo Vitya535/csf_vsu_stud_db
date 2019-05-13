@@ -5,7 +5,7 @@ https://trello.com/b/gZx6mGb6/tpcsf
 Mire
 https://realtimeboard.com/app/board/o9J_kxmDt4I=/
 
-Техническое задание:
+Техническое задание: https://github.com/erilya/csf_vsu_stud_db/blob/master/__docs/TZ.docx
 
 Отчетный документ:
 https://github.com/erilya/csf_vsu_stud_db/blob/master/__docs/document.docx
