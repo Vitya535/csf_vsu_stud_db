@@ -1,5 +1,7 @@
+import os
 from datetime import datetime
-from flask import request, render_template, redirect, url_for
+
+from flask import request, render_template, redirect, url_for, send_from_directory
 from flask_login import LoginManager, login_required, login_user, logout_user, current_user
 
 from app_config import app, db
@@ -52,6 +54,11 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
+
+#favicon
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.ico')
 
 @app.route('/')
 @login_required

@@ -7,3 +7,4 @@ mysql-connector
 MySQL-connector-python
 WTForms
 WTForms-Alchemy
+ldap3
