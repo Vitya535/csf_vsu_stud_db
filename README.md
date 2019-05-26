@@ -1,4 +1,4 @@
-## Были исправлены, в соответствии с выставленными требованиями: доска в Trello и Miro, а также добавлены новые документы к проекту
+## Добавлено Demo видео к данному проекту
 Trello
 https://trello.com/b/gZx6mGb6/tpcsf
 
@@ -10,7 +10,8 @@ https://realtimeboard.com/app/board/o9J_kxmDt4I=/
 Отчетный документ:
 https://github.com/erilya/csf_vsu_stud_db/blob/master/__docs/document.docx
 
-
+Видео:
+https://youtu.be/eBAWfz7o7z8
 
 Дополнительная информация о проекте расположена в Wiki репозитории.
 
