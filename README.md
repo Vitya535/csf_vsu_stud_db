@@ -1,9 +1,9 @@
-## Добавлено Demo видео к данному проекту
+## Обновлена общая функциональная схема приложения
 Trello
 https://trello.com/b/gZx6mGb6/tpcsf
 
-Mire
-https://realtimeboard.com/app/board/o9J_kxmDt4I=/
+miro
+https://miro.com/app/board/o9J_kxGMGvw=/
 
 Техническое задание: https://github.com/erilya/csf_vsu_stud_db/blob/master/__docs/TZ.docx
 
