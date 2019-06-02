@@ -17,13 +17,14 @@
         {{ bootstrap_form_input(form.surname) }}
         {{ bootstrap_form_input(form.firstname) }}
         {{ bootstrap_form_input(form.middlename) }}
+        {{ bootstrap_form_input(form.status) }}
         {{ bootstrap_form_input(form.stud_group) }}
         {{ bootstrap_form_input(form.semester) }}
         {{ bootstrap_form_input(form.alumnus_year) }}
         {{ bootstrap_form_input(form.expelled_year) }}
         {{ bootstrap_form_input(form.login) }}
         {{ bootstrap_form_button(form.button_search, class_="btn btn-success") }}
-        {% endautoescape %}
+    {% endautoescape %}
     </form>
     {% if students != None %}
         <h3>Результаты поиска</h3>
@@ -34,6 +35,7 @@
                 <th>ФИО</th>
                 <th>Семестр</th>
                 <th>Группа</th>
+                <th>Состояние</th>
                 <th>Дополнительно</th>
             </tr>
             </thead>
@@ -52,6 +54,9 @@
                                 <a href="{{ url_for('stud_group', id=s.stud_group.id) }}">{{ s.stud_group.num_print }}</a>
                             {% endif %}
                         </td>
+                         <td>
+                             {{ s.status_name }}
+                         </td>
                         <td>
                             {% if s.alumnus_year %}
                                 Успешно закончил обучение в {{ s.alumnus_year }} году

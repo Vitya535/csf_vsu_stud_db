@@ -15,6 +15,8 @@
                 <th>Курс</th>
                 <th>Семестр</th>
                 <th>Группа</th>
+                <th>Направление (специальность)</th>
+                <th>Профиль</th>
                 <th></th>
             </tr>
             </thead>
@@ -25,13 +27,21 @@
                     <td>{{ g.course }}</td>
                     <td>{{ g.semester }}</td>
                     <td><a href="{{url_for('stud_group', id=g.id)}}">{{ g.num_print }}</a></td>
+                    <td>
+                        {{ g.specialty }}
+                    </td>
+                    <td>
+                        {% if g.specialization %}
+                            {{ g.specialization }}
+                        {% endif %}
+                    </td>
                     <td><a href="{{url_for('att_marks_report_stud_group', id=g.id)}}">Оценки</a></td>
                 </tr>
             {% endfor %}
             </tbody>
         </table>
         <div>
-            <a href="{{url_for('stud_group', id='new')}}" class="btn btn-primary">Добавить группу</a>
+            <a href="{{url_for('stud_group', id='new', _anchor='edit')}}" class="btn btn-primary">Добавить группу</a>
         </div>
     </div>
 </body>

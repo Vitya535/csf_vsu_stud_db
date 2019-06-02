@@ -55,10 +55,15 @@ def logout():
     return redirect(url_for('login'))
 
 
-#favicon
+# favicon
 @app.route('/favicon.ico')
 def favicon():
     return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.ico')
+
+
+def render_error(code):
+    return render_template('_errors/%d.html' % code), code
+
 
 @app.route('/')
 @login_required
@@ -80,7 +85,7 @@ def stud_groups():
 @login_required
 def stud_group(id):
     if current_user.role_name != 'AdminUser':
-        return 'Forbidden', 403
+        return render_error(403)
 
     if id == 'new':
         group = StudGroup()
@@ -96,11 +101,15 @@ def stud_group(id):
         try:
             id = int(id)
         except ValueError:
-            return 'Bad Request', 400
+            return render_error(400)
         group = db.session.query(StudGroup).filter(StudGroup.id == id).one_or_none()
 
     if group is None:
-        return 'Not Found', 404
+        return render_error(404)
+
+    # Запрет на редактирование неактивной группы
+    if not group.active:
+        return render_error(403)
 
     form = StudGroupForm(request.form, obj=group)
 
@@ -146,19 +155,19 @@ def stud_group(id):
 @login_required
 def student(id):
     if current_user.role_name != 'AdminUser':
-        return 'Forbidden', 403
+        return render_error(403)
     if id == 'new':
         s = Student()
     else:
         try:
             id = int(id)
         except ValueError:
-            return 'Bad Request', 400
+            return render_error(400)
         s = db.session.query(Student).filter(Student.id == id).one_or_none()
         if s is None:
-            return 'Not Found', 404
+            return render_error(404)
 
-    form = StudentForm(request.form, obj=s)
+    form = StudentForm(request.form, obj=s) #WFORMS-Alchemy Объект на форму
 
     if form.button_delete.data:
         form.validate()
@@ -172,19 +181,40 @@ def student(id):
             return redirect(url_for('students'))
 
     if form.button_save.data and form.validate():
-        form.populate_obj(s)
+        form.populate_obj(s) #WFORMS-Alchemy с формы на объект
+        if s.status == "alumnus":
+            s.stud_group = None
+            s.expelled_year = None
+            s.semester = None
+            if s.alumnus_year is None:
+                s.alumnus_year = datetime.now().year
+
+        if s.status in ("expelled", "academic_leave"):
+            s.stud_group = None
+            s.alumnus_year = None
+            if s.expelled_year is None:
+                s.expelled_year = datetime.now().year
+
         if s.stud_group is not None:
+            s.status = "study"
             s.semester = s.stud_group.semester
+
+        if s.status == "study":
             s.alumnus_year = None
             s.expelled_year = None
-            form = StudentForm(obj=s)
 
-        db.session.add(s)
-        db.session.commit()
-        if id == 'new':
-            db.session.flush() # ???
-        if s.id != id:
-            return redirect(url_for('student', id=s.id))
+        form = StudentForm(obj=s)
+
+        if form.validate():
+            if s.status != "alumnus" and s.semester is None:
+                form.semester.errors.append("Укажите семестр")
+            if len(form.semester.errors) == 0:
+                db.session.add(s)
+                db.session.commit()
+                if id == 'new':
+                    db.session.flush() # ???
+                if s.id != id:
+                    return redirect(url_for('student', id=s.id))
 
     return render_template('student.html', student=s, form=form)
 
@@ -193,7 +223,7 @@ def student(id):
 @login_required
 def students():
     if current_user.role_name != 'AdminUser':
-        return 'Forbidden', 403
+        return render_error(403)
 
     form = StudentSearchForm(request.args)
     result = None
@@ -207,6 +237,9 @@ def students():
             q = q.filter(Student.firstname == form.firstname.data)
         if form.middlename.data != '':
             q = q.filter(Student.middlename == form.middlename.data)
+
+        if form.status.data is not None:
+            q = q.filter(Student.status == form.status.data)
 
         if form.stud_group.data is not None:
             q = q.filter(Student.stud_group_id == form.stud_group.data.id)
@@ -230,7 +263,7 @@ def students():
 @login_required
 def subjects():
     if current_user.role_name != 'AdminUser':
-        return 'Forbidden', 403
+        return render_error(403)
     s = db.session.query(Subject).order_by(Subject.name)
     return render_template('subjects.html', subjects=s)
 
@@ -239,17 +272,17 @@ def subjects():
 @login_required
 def subject(id):
     if current_user.role_name != 'AdminUser':
-        return 'Forbidden', 403
+        return render_error(403)
     if id == 'new':
         s = Subject()
     else:
         try:
             id = int(id)
         except ValueError:
-            return 'Bad Request', 400
+            return render_error(400)
         s = db.session.query(Subject).filter(Subject.id == id).one_or_none()
         if s is None:
-            return 'Not Found', 404
+            return render_error(404)
 
     form = SubjectForm(request.form, obj=s)
     if form.button_delete.data:
@@ -277,7 +310,7 @@ def subject(id):
 @login_required
 def teachers():
     if current_user.role_name != 'AdminUser':
-        return 'Forbidden', 403
+        return render_error(403)
     return render_template('teachers.html', teachers=db.session.query(Teacher).order_by(Teacher.surname, Teacher.firstname, Teacher.middlename))
 
 
@@ -285,17 +318,17 @@ def teachers():
 @login_required
 def teacher(id):
     if current_user.role_name != 'AdminUser':
-        return 'Forbidden', 403
+        return render_error(403)
     if id == 'new':
         t = Teacher()
     else:
         try:
             id = int(id)
         except ValueError:
-            return 'Bad Request', 400
+            return render_error(400)
         t = db.session.query(Teacher).filter(Teacher.id == id).one_or_none()
         if t is None:
-            return 'Not Found', 404
+            return render_error(404)
 
     form = TeacherForm(request.form, obj=t)
 
@@ -324,7 +357,7 @@ def teacher(id):
 @login_required
 def curriculum_unit(id):
     if current_user.role_name != 'AdminUser':
-        return 'Forbidden', 403
+        return render_error(403)
     if id == 'new':
         sg = None
         if 'stud_group_id' in request.args:
@@ -339,10 +372,10 @@ def curriculum_unit(id):
         try:
             id = int(id)
         except ValueError:
-            return 'Bad Request', 400
+            return render_error(400)
         cu = db.session.query(CurriculumUnit).filter(CurriculumUnit.id == id).one_or_none()
         if cu is None:
-            return 'Not Found', 404
+            return render_error(404)
 
     form = CurriculumUnitForm(request.form, obj=cu)
 
@@ -367,11 +400,14 @@ def curriculum_unit(id):
         else:
 
             form.populate_obj(cu)
-            db.session.add(cu)
-            db.session.commit()
-            if id == 'new':
-                db.session.flush()
-                return redirect(url_for('curriculum_unit', id=cu.id))
+            if not cu.stud_group.active:
+                form.stud_group.errors.append('Невозможно добавить запись для неактивной студенческой группы')
+            else:
+                db.session.add(cu)
+                db.session.commit()
+                if id == 'new':
+                    db.session.flush()
+                    return redirect(url_for('curriculum_unit', id=cu.id))
 
     if cu.stud_group is not None:
         form.stud_group.render_kw = {"disabled": True}
@@ -382,16 +418,22 @@ def curriculum_unit(id):
 @app.route('/att_marks/<id>', methods=['GET', 'POST'])
 @login_required
 def att_marks(id):
-    if current_user.role_name != 'AdminUser':
-        return 'Forbidden', 403
     try:
         id = int(id)
     except ValueError:
-        return 'Bad Request', 400
+        return render_error(400)
 
     cu = db.session.query(CurriculumUnit).filter(CurriculumUnit.id == id).one_or_none()
     if cu is None:
-        return 'Not Found', 404
+        return render_error(404)
+
+    # Проверка прав доступа
+    if not (current_user.role_name == 'AdminUser' or (current_user.role_name == "Teacher" and current_user.id == cu.teacher_id)):
+        return render_error(403)
+
+    # запрет для редактирования оценок для неактивной студенческой группы
+    if not cu.stud_group.active:
+        return render_error(403)
 
     # Создание записей AttMark если их нет для данной единицы учебного плана
     _students = db.session.query(Student).filter(Student.stud_group_id == cu.stud_group.id).\
@@ -406,6 +448,8 @@ def att_marks(id):
         cu = db.session.query(CurriculumUnit).filter(CurriculumUnit.id == id).one_or_none()
 
     cu.att_marks.sort(key=lambda m: (m.student.surname, m.student.firstname, m.student.middlename))
+    # Строки доступные только для чтения
+    att_marks_readonly_ids = tuple(m.att_mark_id for m in cu.att_marks if m.student.stud_group_id != cu.stud_group_id)
 
     form = CurriculumUnitAttMarksForm(request.form, obj=cu)
 
@@ -418,10 +462,11 @@ def att_marks(id):
     if form.button_save.data and form.validate():
         form.populate_obj(cu)
         for m in cu.att_marks:
-            db.session.add(m)
+            if m.att_mark_id not in att_marks_readonly_ids:
+                db.session.add(m)
         db.session.commit()
 
-    return render_template('att_marks.html', curriculum_unit=cu, form=form)
+    return render_template('att_marks.html', curriculum_unit=cu, form=form, att_marks_readonly_ids=att_marks_readonly_ids)
 
 
 @app.route('/att_marks_report_stud_group/<id>')
@@ -430,11 +475,11 @@ def att_marks_report_stud_group(id):
     try:
         id = int(id)
     except ValueError:
-        return 'Bad Request', 400
+        return render_error(400)
     group = db.session.query(StudGroup).filter(StudGroup.id == id).one_or_none()
 
     if group is None:
-        return 'Not Found', 404
+        return render_error(404)
 
     students_map = {}
 
@@ -478,11 +523,11 @@ def att_marks_report_student(id):
     try:
         id = int(id)
     except ValueError:
-        return 'Bad Request', 400
+        return render_error(400)
     s = db.session.query(Student).filter(Student.id == id).one_or_none()
 
     if s is None:
-        return 'Not Found', 404
+        return render_error(404)
 
     result = db.session.query(AttMark).join(CurriculumUnit).join(StudGroup).filter(AttMark.student_id == id).\
         order_by(StudGroup.year, StudGroup.semester, AttMark.curriculum_unit_id).all()
@@ -494,7 +539,7 @@ def att_marks_report_student(id):
 @login_required
 def admin_users():
     if current_user.role_name != 'AdminUser':
-        return 'Forbidden', 403
+        return render_error(403)
     return render_template('admin_users.html',
                            admin_users=db.session.query(AdminUser).order_by(AdminUser.surname, AdminUser.firstname,
                                                                        AdminUser.middlename))
@@ -504,17 +549,17 @@ def admin_users():
 @login_required
 def admin_user(id):
     if current_user.role_name != 'AdminUser':
-        return 'Forbidden', 403
+        return render_error(403)
     if id == 'new':
         u = AdminUser()
     else:
         try:
             id = int(id)
         except ValueError:
-            return 'Bad Request', 400
+            return render_error(400)
         u = db.session.query(AdminUser).filter(AdminUser.id == id).one_or_none()
         if u is None:
-            return 'Not Found', 404
+            return render_error(404)
 
     form = AdminUserForm(request.form, obj=u)
 
@@ -533,6 +578,9 @@ def admin_user(id):
             return redirect(url_for('admin_user', id=u.id))
 
     return render_template('admin_user.html', admin_user=u, form=form)
+
+
+app.register_error_handler(404, lambda x: render_error(404))
 
 
 if __name__ == '__main__':

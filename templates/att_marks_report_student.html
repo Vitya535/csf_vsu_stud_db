@@ -94,7 +94,7 @@
                         <td><a href="{{ url_for('att_marks_report_stud_group', id=mark.curriculum_unit.stud_group_id) }}">{{ mark.curriculum_unit.stud_group.semester }}</a></td>
                         <td>{{ mark.curriculum_unit.stud_group.course }}</td>
                         <td>{{ mark.curriculum_unit.subject.name }}</td>
-                        <td>{{ mark.curriculum_unit.mark_type_name[1] }}</td>
+                        <td>{{ mark.curriculum_unit.mark_type_name }}</td>
                         <td>{{ mark.curriculum_unit.teacher.full_name_short }}</td>
                         <td>
                             {% if mark.att_mark_1 is not none %}

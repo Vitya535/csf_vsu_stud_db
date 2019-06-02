@@ -9,6 +9,10 @@
         {
             width: 35px;
         }
+        .row-disabled
+        {
+            text-decoration: line-through;
+        }
     </style>
 </head>
 <body>
@@ -58,7 +62,7 @@
                 Отчётность:
             </dt>
             <dd class="col-sm-3">
-                {{ curriculum_unit.mark_type_name[1] }}
+                {{ curriculum_unit.mark_type_name }}
             </dd>
         </dl>
         <form method="post" id="formAttMarks">
@@ -71,10 +75,10 @@
                 <th>1 атт</th>
                 <th>2 атт</th>
                 <th>3 атт</th>
-                {% if curriculum_unit.mark_type_name[0] == 'exam' %}
+                {% if curriculum_unit.mark_type == 'exam' %}
                     <th>экзамен</th>
                 {% endif %}
-                {% if curriculum_unit.mark_type_name[0] in ('exam', 'test_diff') %}
+                {% if curriculum_unit.mark_type in ('exam', 'test_diff') %}
                     <th>доп. балл</th>
                     <th>балл</th>
                 {% endif %}
@@ -83,19 +87,20 @@
             </thead>
             <tbody>
                 {% for att_mark in form.att_marks %}
-                <tr>
+                {% set disabled_row = att_mark.object_data.att_mark_id in att_marks_readonly_ids %}
+                <tr {% if disabled_row %}class="row-disabled"{% endif %}>
                     <th>
                         {{ loop.index }}
                     </th>
                     <td>
-                        {{ att_mark.att_mark_id }}
+                        {{ att_mark.att_mark_id|safe }}
                         {{ att_mark.object_data.student.full_name }}
                     </td>
                     <td>
                         {{ att_mark.object_data.student.id }}
                     </td>
                     <td>
-                        {{ att_mark.att_mark_1(class_='input-mark', tabindex=loop.index) }}
+                        {{ att_mark.att_mark_1(class_='input-mark', tabindex=loop.index, disabled=disabled_row)|safe }}
                         {% if att_mark.att_mark_1.errors %}
                             <span class="badge badge-danger">
                                 {{ ', '.join(att_mark.att_mark_1.errors ) }}
@@ -103,7 +108,7 @@
                         {% endif %}
                     </td>
                     <td>
-                        {{ att_mark.att_mark_2(class_='input-mark', tabindex=form.att_marks|length+loop.index)|safe }}
+                        {{ att_mark.att_mark_2(class_='input-mark', tabindex=form.att_marks|length+loop.index, disabled=disabled_row)|safe }}
                         {% if att_mark.att_mark_2.errors %}
                             <span class="badge badge-danger">
                                 {{ ', '.join(att_mark.att_mark_2.errors ) }}
@@ -111,16 +116,16 @@
                         {% endif %}
                     </td>
                      <td>
-                         {{ att_mark.att_mark_3(class_='input-mark', tabindex=2*form.att_marks|length+loop.index)|safe }}
+                         {{ att_mark.att_mark_3(class_='input-mark', tabindex=2*form.att_marks|length+loop.index, disabled=disabled_row)|safe }}
                          {% if att_mark.att_mark_3.errors %}
                             <span class="badge badge-danger">
                                 {{ ', '.join(att_mark.att_mark_3.errors ) }}
                             </span>
                          {% endif %}
                     </td>
-                    {% if curriculum_unit.mark_type_name[0] == 'exam' %}
+                    {% if curriculum_unit.mark_type == 'exam' %}
                         <td>
-                            {{ att_mark.att_mark_exam(class_='input-mark', tabindex=3*form.att_marks|length+loop.index)|safe }}
+                            {{ att_mark.att_mark_exam(class_='input-mark', tabindex=3*form.att_marks|length+loop.index, disabled=disabled_row)|safe }}
                             {% if att_mark.att_mark_exam.errors %}
                                 <span class="badge badge-danger">
                                     {{ ', '.join(att_mark.att_mark_exam.errors ) }}
@@ -128,9 +133,9 @@
                             {% endif %}
                         </td>
                     {% endif %}
-                    {% if curriculum_unit.mark_type_name[0] in ('exam', 'test_diff') %}
+                    {% if curriculum_unit.mark_type in ('exam', 'test_diff') %}
                         <td>
-                            {{ att_mark.att_mark_append_ball(class_='input-mark', tabindex=4*form.att_marks|length+loop.index)|safe }}
+                            {{ att_mark.att_mark_append_ball(class_='input-mark', tabindex=4*form.att_marks|length+loop.index, disabled=disabled_row)|safe }}
                             {% if att_mark.att_mark_append_ball.errors %}
                                 <span class="badge badge-danger">
                                     {{ ', '.join(att_mark.att_mark_append_ball.errors ) }}

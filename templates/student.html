@@ -16,6 +16,7 @@
             {{ bootstrap_form_input(form.surname) }}
             {{ bootstrap_form_input(form.firstname) }}
             {{ bootstrap_form_input(form.middlename) }}
+            {{ bootstrap_form_input(form.status) }}
             {{ bootstrap_form_input(form.stud_group) }}
             {{ bootstrap_form_input(form.semester) }}
             {{ bootstrap_form_input(form.alumnus_year) }}
@@ -36,7 +37,9 @@
     <script type="text/javascript">
         /*Вставка javascript скрыть семестр, год выпуска и отчисления, если указана группа*/
         $(document).ready(function(){
+            var input_status = $('#formStudent select[name=status]');
             var input_stud_group = $('#formStudent select[name=stud_group]');
+            var input_stud_group_parent  = $('#formStudent select[name=stud_group]').parent().parent();
             var input_semester_parent = $('#formStudent input[name=semester]').parent().parent();
             var input_alumnus_year_parent = $('#formStudent input[name=alumnus_year]').parent().parent();
             var input_expelled_year_parent = $('#formStudent input[name=expelled_year]').parent().parent();
@@ -45,17 +48,43 @@
                 if (input_stud_group.val()== "__None")
                 {
                     input_semester_parent.show();
-                    input_alumnus_year_parent.show();
-                    input_expelled_year_parent.show();
                 }
                 else
                 {
                     input_semester_parent.hide();
-                    input_alumnus_year_parent.hide();
-                    input_expelled_year_parent.hide();
                 }
             });
-            input_stud_group.change();
+
+            input_status.change(function(){
+                input_stud_group_parent.show();
+                input_semester_parent.show();
+                input_alumnus_year_parent.show();
+                input_expelled_year_parent.show();
+
+                var status = input_status.val()
+
+                if (status == "study")
+                {
+                    input_alumnus_year_parent.hide();
+                    input_expelled_year_parent.hide();
+                    input_stud_group.change();
+                }
+
+                if (status == "alumnus")
+                {
+                    input_stud_group_parent.hide();
+                    input_semester_parent.hide();
+                    input_expelled_year_parent.hide();
+                }
+
+                if ((status == "expelled") || (status == "academic_leave"))
+                {
+                    input_stud_group_parent.hide();
+                    input_alumnus_year_parent.hide();
+                }
+
+            });
+            input_status.change();
         });
     </script>
 </body>

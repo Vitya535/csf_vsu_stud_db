@@ -47,6 +47,8 @@
                     {{ bootstrap_form_input(form.semester) }}
                     {{ bootstrap_form_input(form.num) }}
                     {{ bootstrap_form_input(form.subnum) }}
+                    {{ bootstrap_form_input(form.specialty) }}
+                    {{ bootstrap_form_input(form.specialization) }}
                     {% if group.id %}
                         {{ bootstrap_form_button(form.button_delete, class_="btn btn-danger") }}
                     {% endif %}
@@ -89,7 +91,7 @@
                                 <tr>
                                     <td><a href="{{ url_for('curriculum_unit', id=cu.id) }}">{{ cu.subject.name }}</a></td>
                                     <td>{{ cu.teacher.full_name_short }}</td>
-                                    <td><a href="{{ url_for('att_marks', id=cu.id) }}">{{ cu.mark_type_name[1] }}</a></td>
+                                    <td><a href="{{ url_for('att_marks', id=cu.id) }}">{{ cu.mark_type_name }}</a></td>
                                 </tr>
                             {% endfor %}
                         </tbody>

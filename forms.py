@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from app_config import db
-from model import StudGroup, Subject, Teacher, Student, CurriculumUnit, AttMark, MarkType, AdminUser
+from model import StudGroup, Subject, Teacher, Student, StudentStates, StudentStateDict, CurriculumUnit, AttMark, MarkTypes, MarkTypeDict, AdminUser
 from wtforms import validators, Form, SubmitField, IntegerField, StringField, HiddenField, PasswordField, FormField
 from wtforms_alchemy import ModelForm, ModelFieldList
 from wtforms_alchemy.fields import QuerySelectField
@@ -9,16 +9,24 @@ from wtforms_alchemy.validators import Unique
 
 
 class _PersonForm:
-    surname = StringField('Фамилия', [validators.DataRequired()])
-    firstname = StringField('Имя', [validators.DataRequired()])
-    middlename = StringField('Отчество')
-    login = StringField('Login', [
-        validators.Optional(),
-        validators.Regexp("^[a-z0-9_]+$", message="Учётное имя может содержать только латинкие символы, цифры и знак подчёркивания"),
-        Unique(Student.login, get_session=lambda: db.session, message='Логин занят'),
-        Unique(Teacher.login, get_session=lambda: db.session, message='Логин занят'),
-        Unique(AdminUser.login, get_session=lambda: db.session, message='Логин занят')
-    ])
+    surname = StringField('Фамилия', [validators.Length(min=2, max=45), validators.DataRequired()])
+    firstname = StringField('Имя', [validators.Length(min=2, max=45), validators.DataRequired()])
+    middlename = StringField(
+        'Отчество',
+        validators=[validators.Length(min=2, max=45), validators.Optional()],
+        filters=[lambda val: val or None]
+    )
+    login = StringField('Login',
+        validators=[
+            validators.Optional(),
+            validators.Length(min=3, max=45),
+            validators.Regexp("^[a-z0-9_]+$", message="Учётное имя может содержать только латинкие символы, цифры и знак подчёркивания"),
+            Unique(Student.login, get_session=lambda: db.session, message='Логин занят'),
+            Unique(Teacher.login, get_session=lambda: db.session, message='Логин занят'),
+            Unique(AdminUser.login, get_session=lambda: db.session, message='Логин занят')
+        ],
+        filters=[lambda val: val or None]
+    )
 
 
 class StudGroupForm(ModelForm):
@@ -31,6 +39,13 @@ class StudGroupForm(ModelForm):
     semester = IntegerField('Семестр', [validators.DataRequired(), validators.NumberRange(min=1, max=10)])
     num = IntegerField('Группа', [validators.DataRequired(), validators.NumberRange(min=1, max=255)])
     subnum = IntegerField('Подгруппа', [validators.NumberRange(min=0, max=3)])
+    specialty = StringField('Направление (специальность)', [validators.Length(min=4, max=StudGroup.specialty.property.columns[0].type.length), validators.DataRequired()])
+    specialization = StringField(
+        'Профиль',
+        validators=[validators.Length(min=4, max=StudGroup.specialization.property.columns[0].type.length), validators.Optional()],
+        filters=[lambda val: val or None]
+    )
+
     button_save = SubmitField('Сохранить')
     button_delete = SubmitField('Удалить')
 
@@ -41,6 +56,11 @@ class StudentForm(_PersonForm, ModelForm):
         include_primary_keys = True
 
     id = IntegerField('Номер студенческого билета', [validators.DataRequired(), validators.NumberRange(min=1), Unique(Student.id, get_session=lambda: db.session, message='Номер студенческого билета занят')])
+    status = QuerySelectField('Состояние',
+                              query_factory=lambda: StudentStates,
+                              get_pk=lambda s: s,
+                              get_label=lambda s: StudentStateDict[s],
+                              allow_blank=False, validators=[validators.DataRequired()])
     semester = IntegerField('Семестр', [validators.NumberRange(min=1, max=10), validators.Optional()])
     stud_group = QuerySelectField('Группа',
                                   query_factory=lambda: db.session.query(StudGroup).filter(StudGroup.active).order_by(
@@ -60,6 +80,11 @@ class StudentSearchForm(Form):
     surname = StringField('Фамилия', [validators.Length(min=2, max=Student.surname.property.columns[0].type.length), validators.Optional()])
     firstname = StringField('Имя', [validators.Length(min=2, max=Student.firstname.property.columns[0].type.length), validators.Optional()])
     middlename = StringField('Отчество', [validators.Length(min=2, max=Student.middlename.property.columns[0].type.length), validators.Optional()])
+    status = QuerySelectField('Состояние',
+                              query_factory=lambda: StudentStates,
+                              get_pk=lambda s: s,
+                              get_label=lambda s: StudentStateDict[s],
+                              blank_text='Не указано', allow_blank=True, validators=[validators.Optional()])
     semester = IntegerField('Семестр', [validators.NumberRange(min=1, max=10), validators.Optional()])
     stud_group = QuerySelectField('Группа',
                                   query_factory=lambda: db.session.query(StudGroup).filter(StudGroup.active).order_by(
@@ -137,9 +162,9 @@ class CurriculumUnitForm(ModelForm):
     hours_att_3 = IntegerField('Часов на 3-ю аттестацию',
                                [validators.NumberRange(min=1), validators.DataRequired()])
 
-    mark_type = QuerySelectField('Тип отчётности', query_factory=lambda: MarkType,
+    mark_type = QuerySelectField('Тип отчётности', query_factory=lambda: MarkTypes,
                                  get_pk=lambda t: t,
-                                 get_label=lambda t: MarkType[t][1],
+                                 get_label=lambda t: MarkTypeDict[t],
                                  blank_text='Не указан', allow_blank=True, validators=[validators.DataRequired()])
 
     button_save = SubmitField('Сохранить')
