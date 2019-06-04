@@ -1,4 +1,4 @@
-## Обновлена общая функциональная схема приложения
+## Добавлена презентация и основная документация
 Trello
 https://trello.com/b/gZx6mGb6/tpcsf
 
@@ -7,11 +7,13 @@ https://miro.com/app/board/o9J_kxGMGvw=/
 
 Техническое задание: https://github.com/erilya/csf_vsu_stud_db/blob/master/__docs/TZ.docx
 
-Отчетный документ:
-https://github.com/erilya/csf_vsu_stud_db/blob/master/__docs/document.docx
+Курсовой проект:
+https://github.com/erilya/csf_vsu_stud_db/blob/master/__docs/kurs_proj.docx
 
 Видео:
 https://youtu.be/eBAWfz7o7z8
+Выступление (презентация):
+https://github.com/erilya/csf_vsu_stud_db/blob/master/__docs/pt_pres_das_eia.pptx
 
 Приложение, а так же вся документация для него разрабатывается группой студентов в рамках дисциплины "Технологии программирования" 3 курса ФКН 1 группы: Еремин Илья, Дуненбаев Артем и Баженов Вадим.
 
