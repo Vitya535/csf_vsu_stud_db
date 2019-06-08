@@ -66,8 +66,3 @@ source dump.sql;
 # erilya 
 # с паролем:
 # erilya
-
-
-
-
-
