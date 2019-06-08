@@ -1,0 +1,73 @@
+﻿# На Windows в режиме приложения (без Apache)
+
+# Скачать и установить интерпретатор Python3
+# https://www.python.org/ftp/python/3.7.3/python-3.7.3-amd64.exe 
+
+# Открыть командную строку. Прейти в каталог, в который был установлен интерпретатор Python и выполнить следующие команды
+
+python -m pip install --upgrade pip
+python -m pip install SQLAlchemy
+python -m pip install Flask
+python -m pip install Flask-Login
+python -m pip install Flask-SQLAlchemy
+python -m pip install PyMySQL
+python -m pip install mysql-connector
+python -m pip install MySQL-connector-python
+python -m pip install WTForms
+python -m pip install WTForms-Alchemy
+
+
+# Установить сервер и клиент MySQL  
+
+https://dev.mysql.com/downloads/installer/
+
+# В MySQL Installer выбрать следующее ПО: MySQL Server, MySQL Shell. Также по желанию можно установить MySQL Workbench
+
+# После установки MySQL
+# Необходимо подключиться к БД по root используюя, MySQL Shell или MySQL Workbench
+
+
+# Создать схему данных <database>
+# Создать пользователя в БД <username> и указать пароль <password>
+# Выдать права пользователю на всю схему
+# Перейти в созданную схему
+
+
+create database <database>
+creaete user <username>@localhost IDENTIFIED BY '<password>';
+GRANT ALL PRIVILEGES ON <database>.* TO '<username>'@localhost;
+USE <database>;
+
+
+# Затем есть два варианта.
+# 1 Вариант. Создать пустую схему и добавить административного пользователя
+source _db_create/create_db.sql;
+source _db_create/db_update_1.sql;
+source _db_create/db_update_2.sql;
+INSERT INTO `admin_user` VALUES (NULL,'Еремин','Илья','Александрович','erilya');
+COMMIT;
+
+# 2 Вариант. Загрузить Дамп с реальными данными (нет на GitHub)
+source dump.sql;
+
+#Отредактировать в app_config.py 
+#Строка 7 в соостветствии с параметрами подключения к БД
+# SQLALCHEMY_DATABASE_URI = "mysql+mysqlconnector://<username>:<password>@localhost/<database>?auth_plugin=mysql_native_password"
+# Строку 6 удалить
+# DEBUG=True
+# Установить свой собственный SECRET_KEY приложения в файле
+# SECRET_KEY = ''
+
+
+# Запустить в интерпретаторе python файл app.py
+
+# Приложение установлено. Можно открывать в браузере по адресу http://127.0.0.1:5000/ 
+# Заходить можно под пользователем:
+# erilya 
+# с паролем:
+# erilya
+
+
+
+
+
