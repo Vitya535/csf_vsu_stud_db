@@ -16,8 +16,12 @@ https://youtu.be/eBAWfz7o7z8
 https://github.com/erilya/csf_vsu_stud_db/blob/master/__docs/pt_pres_das_eia.pptx
 
 ### Инструкция:
+
+OS Windows
 https://github.com/erilya/csf_vsu_stud_db/blob/master/__docs/config_pt_windows_das.txt
 
+OS Linux
+https://github.com/erilya/csf_vsu_stud_db/blob/master/__docs/config_pt_linux_debian_ubuntu.txt
 Приложение, а так же вся документация для него разрабатывается группой студентов в рамках дисциплины "Технологии программирования" 3 курса ФКН 1 группы: Еремин Илья, Дуненбаев Артем и Баженов Вадим.
 
 Login in GitHub: Еремин Илья erilya, Дуненбаев Артем Petizzen и Баженов Вадим Bazhen1337 (выбыл из команды)
