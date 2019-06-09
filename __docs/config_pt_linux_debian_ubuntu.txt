@@ -1,0 +1,88 @@
+﻿# На Debian Ubuntu
+# Выполнить команды из-под супер-пользователя
+# Установка Apache2.4, интерпретатора python3 с необходимыми модулями, MOD-WSGI и СУБД MariaDB
+apt-get install apache2
+apt-get install python3
+apt-get install python3-pip
+pip3 install SQLAlchemy
+pip3 install Flask
+pip3 install Flask-Login
+pip3 install Flask-SQLAlchemy
+pip3 install PyMySQL
+pip3 install mysql-connector
+pip3 install MySQL-connector-python
+pip3 install WTForms
+pip3 install WTForms-Alchemy
+pip3 install mod_wsgi
+apt-get install libapache2-mod-wsgi-py3
+apt install mariadb-server mariadb-client
+
+# Распаковать файлы в каталог, например, /var/www/wsgi
+# Отредактировать файл конфигурации apache (/etc/apache2/sites-enabled) следующим образом
+
+###
+Закомментировать строчку
+#DocumentRoot /var/www/html
+#После неё добавить
+WSGIScriptAlias / /var/www/wsgi/wsgi.wsgi
+###
+#Создать файл wsgi.wsgi со следующим содержимым
+
+#!/usr/bin/python3
+import sys
+import os
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+from app import app as application
+
+###
+
+
+# Необходимо подключиться к БД 
+# Создать схему данных <database>
+# Создать пользователя в БД <username> и указать пароль <password>
+# Выдать права пользователю на всю схему
+# Перейти в созданную схему
+#
+
+
+
+mysql -u root -p
+create database <database>
+creaete user <username>@localhost IDENTIFIED BY '<password>';
+GRANT ALL PRIVILEGES ON <database>.* TO '<username>'@localhost;
+USE <database>;
+
+
+# Затем есть два варианта.
+# 1 Вариант. Создать пустую схему и добавить административного пользователя
+source _db_create/create_db.sql;
+source _db_create/db_update_1.sql;
+source _db_create/db_update_2.sql;
+INSERT INTO `admin_user` VALUES (NULL,'Еремин','Илья','Александрович','erilya');
+COMMIT;
+
+# 2 Вариант. Загрузить Дамп с реальными данными (нет на GitHub)
+source dump.sql;
+
+# Выйти из оболочки mysql-client
+exit;
+
+#Отредактировать в app_config.py 
+#Строка 7 в соостветствии с параметрами подключения к БД
+# SQLALCHEMY_DATABASE_URI = "mysql+mysqlconnector://<username>:<password>@localhost/<database>?auth_plugin=mysql_native_password"
+# Строку 6 удалить
+# DEBUG=True
+# Установить свой собственный SECRET_KEY приложения в файле
+# SECRET_KEY = ''
+
+#Перезапустить apache
+#
+
+service apache2 restart
+
+# Приложение установлено. Можно открывать в браузере. Заходить можно под пользователем:
+# erilya 
+# с паролем:
+# erilya
