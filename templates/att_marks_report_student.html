@@ -6,14 +6,18 @@
 </head>
 <body>
     {% include '_menu.html' %}
-    <div class="container">
+    <div class="container-fluid">
         <h2>Свод оценок студента</h2>
         <dl class="row">
             <dt class="col-sm-3">
                 Ф.И.О.:
             </dt>
             <dd class="col-sm-3">
+                {% if (current_user.role_name == 'AdminUser') %}
                 <a href="{{ url_for('student', id=student.id) }}">{{ student.full_name }}</a>
+                {% else %}
+                {{ student.full_name }}
+                {% endif %}
             </dd>
             {% if student.stud_group %}
                 <dt class="col-sm-3">

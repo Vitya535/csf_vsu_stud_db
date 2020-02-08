@@ -25,9 +25,11 @@
            {% endautoescape %}
         </form>
         <div class="container">
+            {% if curriculum_unit.id %}
+                <a href="{{ url_for('curriculum_unit_copy', id=curriculum_unit.id) }}" class="btn btn-info">Копировать</a>
+            {% endif %}
             {% if curriculum_unit.stud_group %}
                 <a href="{{ url_for('stud_group', id=curriculum_unit.stud_group.id, _anchor='curriculum_units') }}" class="btn btn-primary">Студенческая группа</a>
-
             {% endif %}
             {% if curriculum_unit.id %}
                 <a href="{{ url_for('att_marks', id=curriculum_unit.id) }}" class="btn btn-primary">Аттестационная ведомость</a>

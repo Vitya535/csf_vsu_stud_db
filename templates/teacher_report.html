@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<head>
+    {% from "_macros_bootstrap" import bootstrap_form_input, bootstrap_form_button with context %}
+    <meta charset="UTF-8">
+    <title>Преподаватель</title>
+    {% include '_header.html' %}
+</head>
+<body>
+    {% include '_menu.html' %}
+    <div class="container">
+        <h2>Личный кабинет преподавателя</h2>
+        <h4>{{ teacher.full_name }}</h4>
+        <h5>{{ teacher.rank }}</h5>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Предмет</th>
+                    <th>Курс</th>
+                    <th>Группа</th>
+                    <th>Отчётность</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cu in curriculum_units %}
+                <tr>
+                    <td>{{ cu.subject.name }}</td>
+                    <td>{{ cu.stud_group.course }}</td>
+                    <td>{{ cu.stud_group.num_print }}</td>
+                    <td><a href="{{ url_for('att_marks', id=cu.id) }}">{{ cu.mark_type_name }}</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</body>
+</html>

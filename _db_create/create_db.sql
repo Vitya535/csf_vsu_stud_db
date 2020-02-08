@@ -1,6 +1,6 @@
 CREATE TABLE `subject` (
   `subject_id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT 'ID предмета',
-  `subject_name` varchar(45) NOT NULL COMMENT 'Наименование предмета',
+  `subject_name` varchar(64) NOT NULL COMMENT 'Наименование предмета',
   PRIMARY KEY (`subject_id`),
   UNIQUE KEY `subject_name_UNIQUE` (`subject_name`)
 ) COMMENT='Предмет';

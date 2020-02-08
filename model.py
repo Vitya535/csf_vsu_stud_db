@@ -18,7 +18,7 @@ MarkTypeDict = {
 }
 
 
-class _Person:
+class Person:
     @property
     def full_name(self):
         if self.surname is None or self.firstname is None:
@@ -28,8 +28,19 @@ class _Person:
 
     @property
     def full_name_short(self):
+        if self.surname is None or self.firstname is None:
+            return None
         return "%s %s. %s." % (self.surname, self.firstname[0], self.middlename[0]) if self.middlename is not None \
             else "%s %s." % (self.surname, self.firstname[0])
+
+    @staticmethod
+    def get_class_map():
+        class_map = {
+            "AdminUser": AdminUser,
+            "Teacher": Teacher,
+            "Student": Student
+        }
+        return class_map
 
     # Flask-Login Support
     def is_active(self):
@@ -38,7 +49,7 @@ class _Person:
 
     def get_id(self):
         """Return the email address to satisfy Flask-Login's requirements."""
-        return self.login
+        return "%s@%s" % (self.role_name, self.login)
 
     def is_authenticated(self):
         return True
@@ -48,7 +59,23 @@ class _Person:
         return False
 
 
-class StudGroup(db.Model):
+class _ObjectWithSemester:
+    @property
+    def course(self):
+        if self.semester is None:
+            return None
+        return (self.semester // 2) + 1
+
+
+class _ObjectWithYear:
+    @property
+    def year_print(self):
+        if self.year is None:
+            return None
+        return "%d-%d" % (self.year, self.year + 1)
+
+
+class StudGroup(db.Model, _ObjectWithSemester, _ObjectWithYear):
     __tablename__ = 'stud_group'
     __table_args__ = (
         db.UniqueConstraint('stud_group_year', 'stud_group_semester', 'stud_group_num', 'stud_group_subnum'),
@@ -64,21 +91,9 @@ class StudGroup(db.Model):
 
     active = db.Column('stud_group_active', db.BOOLEAN, nullable=False, default=True)
 
-    students = db.relationship('Student', lazy=True, backref='stud_group', \
+    students = db.relationship('Student', lazy=True, backref='stud_group',\
                                order_by="Student.surname, Student.firstname, Student.middlename")
     curriculum_units = db.relationship('CurriculumUnit', lazy=True, backref='stud_group', order_by="CurriculumUnit.id")
-
-    @property
-    def course(self):
-        if self.semester is None:
-            return None
-        return (self.semester // 2) + 1
-
-    @property
-    def year_print(self):
-        if self.year is None:
-            return None
-        return "%d-%d" % (self.year, self.year + 1)
 
     @property
     def num_print(self):
@@ -91,10 +106,10 @@ class Subject(db.Model):
     __tablename__ = 'subject'
 
     id = db.Column('subject_id', db.INTEGER, primary_key=True, autoincrement=True)
-    name = db.Column('subject_name', db.String(45), nullable=False, unique=True)
+    name = db.Column('subject_name', db.String(64), nullable=False, unique=True)
 
 
-class Teacher(db.Model, _Person):
+class Teacher(db.Model, Person):
     __tablename__ = 'teacher'
 
     id = db.Column('teacher_id', db.INTEGER, primary_key=True, autoincrement=True)
@@ -109,7 +124,30 @@ class Teacher(db.Model, _Person):
         return 'Teacher'
 
 
-class CurriculumUnit(db.Model):
+class _CurriculumUnit:
+    @property
+    def mark_type_name(self):
+        return MarkTypeDict[self.mark_type]
+
+    @property
+    def fill_data(self):
+        r = {}
+        for m in self.att_marks:
+            if m.student.stud_group_id == m.curriculum_unit.stud_group_id:
+                for rm_k, rm_v in m.fill_data.items():
+                    r[rm_k] = r.get(rm_k, True) and rm_v
+
+        return r
+
+    @property
+    def hours(self):
+        attrs = ('hours_att_1', 'hours_att_2', 'hours_att_3')
+        if any(getattr(self, a) is None for a in attrs):
+            return None
+        return sum(getattr(self, a) for a in attrs)
+
+
+class CurriculumUnit(db.Model, _CurriculumUnit):
     __tablename__ = 'curriculum_unit'
     __table_args__ = (
         db.UniqueConstraint('subject_id', 'stud_group_id'),
@@ -128,22 +166,64 @@ class CurriculumUnit(db.Model):
     teacher = db.relationship('Teacher')
     att_marks = db.relationship('AttMark', lazy=True, backref='curriculum_unit')
 
-    @property
-    def mark_type_name(self):
-        return MarkTypeDict[self.mark_type]
 
-    @property
-    def fill_data(self):
-        r = {}
-        for m in self.att_marks:
-            if m.student.stud_group_id == self.stud_group_id:
-                for rm_k, rm_v in m.fill_data.items():
-                    r[rm_k] = r.get(rm_k, True) and rm_v
-
-        return r
+class CurriculumUnitUnionException(Exception):
+    pass
 
 
-class Student(db.Model, _Person):
+# Объединённый CurriculumUnit
+class CurriculumUnitUnion(_CurriculumUnit, _ObjectWithSemester, _ObjectWithYear):
+    def __init__(self, curriculum_units):
+        if len(curriculum_units) == 0:
+            raise CurriculumUnitUnionException()
+
+        cu_first = curriculum_units[0]
+
+        self.subject_id = cu_first.subject_id or cu_first.subject.id
+        self.subject = cu_first.subject
+        self.teacher_id = cu_first.teacher_id or cu_first.teacher.id
+        self.teacher = cu_first.teacher
+        self.mark_type = cu_first.mark_type
+        self.hours_att_1 = cu_first.hours_att_1
+        self.hours_att_2 = cu_first.hours_att_2
+        self.hours_att_3 = cu_first.hours_att_3
+
+        self.year = cu_first.stud_group.year
+        self.semester = cu_first.stud_group.semester
+
+        for cu in curriculum_units[1:]:
+            if (
+                    cu.subject_id or cu.subject.id,
+                    cu.teacher_id or cu.teacher.id,
+                    cu.mark_type,
+                    cu.hours_att_1,
+                    cu.hours_att_2,
+                    cu.hours_att_3,
+                    cu.stud_group.year,
+                    cu.stud_group.semester
+            ) != (
+                    self.subject_id,
+                    self.teacher_id,
+                    self.mark_type,
+                    self.hours_att_1,
+                    self.hours_att_2,
+                    self.hours_att_3,
+                    self.year,
+                    self.semester
+            ):
+                raise CurriculumUnitUnionException()
+
+        self.ids = tuple(cu.id for cu in curriculum_units)
+        self.stud_group_ids = tuple(cu.stud_group_id or cu.stud_group.id for cu in curriculum_units)
+        self.stud_groups = tuple(cu.stud_group for cu in curriculum_units)
+        self.att_marks = []
+        for cu in curriculum_units:
+            self.att_marks.extend(cu.att_marks)
+        self.att_marks.sort(key=lambda m: (m.student.surname, m.student.firstname, m.student.middlename))
+        self.att_marks_readonly_ids = tuple(m.att_mark_id for m in self.att_marks if m.student.stud_group_id != m.curriculum_unit.stud_group_id)
+
+
+class Student(db.Model, Person, _ObjectWithSemester):
     __tablename__ = 'student'
 
     id = db.Column('student_id', db.BIGINT, primary_key=True)
@@ -156,18 +236,21 @@ class Student(db.Model, _Person):
     alumnus_year = db.Column('student_alumnus_year', db.SMALLINT)
     expelled_year = db.Column('student_expelled_year', db.SMALLINT)
     status = db.Column('student_status', db.Enum(*StudentStateDict.keys()), nullable=False)
-    login = db.Column('student_login', db.String(45), nullable=False, unique=True)
+    login = db.Column('student_login', db.String(45), unique=True)
+    card_number = db.Column('card_number', db.BIGINT, unique=True)
+    group_leader = db.Column('stud_group_leader', db.BOOLEAN, nullable=False, default=False)
 
     @property
     def status_name(self):
-        return StudentStateDict[self.status]
+        if self.status and self.status in StudentStateDict:
+            return StudentStateDict[self.status]
 
     @property
     def role_name(self):
         return 'Student'
 
 
-class AdminUser(db.Model, _Person):
+class AdminUser(db.Model, Person):
     id = db.Column('admin_user_id', db.BIGINT, primary_key=True)
     surname = db.Column('admin_user_surname', db.String(45), nullable=False)
     firstname = db.Column('admin_user_firstname', db.String(45), nullable=False)
@@ -222,7 +305,7 @@ class AttMark(db.Model):
             return None
 
         mark_results = MarkResult[self.curriculum_unit.mark_type]
-        min_ball =  MarkResult["test_simple"][1]["min"]
+        min_ball = MarkResult["test_simple"][1]["min"]
         max_ball = mark_results[-1]["max"]
 
         if self.curriculum_unit.mark_type == "exam" and self.att_mark_exam is None:

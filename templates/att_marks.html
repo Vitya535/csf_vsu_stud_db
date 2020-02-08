@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Аттестационная ведомость</title>
     {% include '_header.html' %}
-    <style type="text/css">
+    <style>
         .input-mark
         {
             width: 35px;
@@ -24,7 +24,7 @@
                 Учебный год:
             </dt>
             <dd class="col-sm-3">
-                {{ curriculum_unit.stud_group.year_print }}
+                {{ curriculum_unit.year_print }}
             </dd>
             <dt class="col-sm-3">
                 Дисциплина:
@@ -36,9 +36,19 @@
                 Группа:
             </dt>
             <dd class="col-sm-3">
-                <a href="{{ url_for('stud_group', id=curriculum_unit.stud_group.id, _anchor='curriculum_units') }}">
-                    {{ curriculum_unit.stud_group.num_print }}
+                {% for g in curriculum_unit.stud_groups %}
+                {% if current_user.role_name == 'AdminUser' %}
+                <a href="{{ url_for('stud_group', id=g.id, _anchor='curriculum_units') }}">
+                    {{ g.num_print }}
                 </a>
+                {% else %}
+                {{ g.num_print }}
+                {% endif %}
+                {% if not loop.last %},{% endif %}
+                {% endfor %}
+                {% if form_relative_curriculum_units != None %}
+                <a class="btn btn-sm btn-primary" title="Добавить группу к ведомости" data-toggle="modal" data-target="#modalFormView">+</a>
+                {% endif %}
             </dd>
             <dt class="col-sm-3">
                 Преподаватель:
@@ -50,13 +60,13 @@
                 Семестр:
             </dt>
             <dd class="col-sm-3">
-                {{ curriculum_unit.stud_group.semester }}
+                {{ curriculum_unit.semester }}
             </dd>
             <dt class="col-sm-3">
                 Курс:
             </dt>
             <dd class="col-sm-3">
-                {{ curriculum_unit.stud_group.course }}
+                {{ curriculum_unit.course }}
             </dd>
             <dt class="col-sm-3">
                 Отчётность:
@@ -87,7 +97,8 @@
             </thead>
             <tbody>
                 {% for att_mark in form.att_marks %}
-                {% set disabled_row = att_mark.object_data.att_mark_id in att_marks_readonly_ids %}
+                {% set m = att_mark.object_data %}
+                {% set disabled_row = m.att_mark_id in curriculum_unit.att_marks_readonly_ids %}
                 <tr {% if disabled_row %}class="row-disabled"{% endif %}>
                     <th>
                         {{ loop.index }}
@@ -100,7 +111,7 @@
                         {{ att_mark.object_data.student.id }}
                     </td>
                     <td>
-                        {{ att_mark.att_mark_1(class_='input-mark', tabindex=loop.index, disabled=disabled_row)|safe }}
+                        {{ att_mark.att_mark_1(class_='input-mark', tabindex=loop.index, disabled=disabled_row, **{'data-student-id': m.student_id, 'data-att-mark1': m.att_mark_1 if m.att_mark_1 else ''})|safe }}
                         {% if att_mark.att_mark_1.errors %}
                             <span class="badge badge-danger">
                                 {{ ', '.join(att_mark.att_mark_1.errors ) }}
@@ -108,7 +119,7 @@
                         {% endif %}
                     </td>
                     <td>
-                        {{ att_mark.att_mark_2(class_='input-mark', tabindex=form.att_marks|length+loop.index, disabled=disabled_row)|safe }}
+                        {{ att_mark.att_mark_2(class_='input-mark', tabindex=form.att_marks|length+loop.index, disabled=disabled_row, **{'data-student-id': m.student_id, 'data-att-mark2': m.att_mark_2 if m.att_mark_2 else ''})|safe }}
                         {% if att_mark.att_mark_2.errors %}
                             <span class="badge badge-danger">
                                 {{ ', '.join(att_mark.att_mark_2.errors ) }}
@@ -116,7 +127,7 @@
                         {% endif %}
                     </td>
                      <td>
-                         {{ att_mark.att_mark_3(class_='input-mark', tabindex=2*form.att_marks|length+loop.index, disabled=disabled_row)|safe }}
+                         {{ att_mark.att_mark_3(class_='input-mark', tabindex=2*form.att_marks|length+loop.index, disabled=disabled_row, **{'data-student-id': m.student_id, 'data-att-mark3': m.att_mark_3 if m.att_mark_3 else ''})|safe }}
                          {% if att_mark.att_mark_3.errors %}
                             <span class="badge badge-danger">
                                 {{ ', '.join(att_mark.att_mark_3.errors ) }}
@@ -125,7 +136,7 @@
                     </td>
                     {% if curriculum_unit.mark_type == 'exam' %}
                         <td>
-                            {{ att_mark.att_mark_exam(class_='input-mark', tabindex=3*form.att_marks|length+loop.index, disabled=disabled_row)|safe }}
+                            {{ att_mark.att_mark_exam(class_='input-mark', tabindex=3*form.att_marks|length+loop.index, disabled=disabled_row, **{'data-student-id': m.student_id, 'data-att-mark-exam': m.att_mark_exam if m.att_mark_exam else ''})|safe }}
                             {% if att_mark.att_mark_exam.errors %}
                                 <span class="badge badge-danger">
                                     {{ ', '.join(att_mark.att_mark_exam.errors ) }}
@@ -135,7 +146,7 @@
                     {% endif %}
                     {% if curriculum_unit.mark_type in ('exam', 'test_diff') %}
                         <td>
-                            {{ att_mark.att_mark_append_ball(class_='input-mark', tabindex=4*form.att_marks|length+loop.index, disabled=disabled_row)|safe }}
+                            {{ att_mark.att_mark_append_ball(class_='input-mark', tabindex=4*form.att_marks|length+loop.index, disabled=disabled_row, **{'data-student-id': m.student_id, 'data-att-mark-append-ball': m.att_mark_append_ball if m.att_mark_append_ball else '' })|safe }}
                             {% if att_mark.att_mark_append_ball.errors %}
                                 <span class="badge badge-danger">
                                     {{ ', '.join(att_mark.att_mark_append_ball.errors ) }}
@@ -143,27 +154,147 @@
                             {% endif %}
                         </td>
                         <th>
-                            {% if att_mark.object_data.result_print %}
-                                {{ att_mark.object_data.result_print[0] }}
+                            {% if m.result_print %}
+                                {{ m.result_print[0] }}
                             {% endif %}
                         </th>
                     {% endif %}
                     <th>
-                        {% if att_mark.object_data.result_print %}
-                            {{ att_mark.object_data.result_print[1]['value_text'] }}
+                        {% if m.result_print %}
+                            {{ m.result_print[1]['value_text'] }}
                         {% endif %}
                     </th>
                 </tr>
                 {% endfor %}
             </tbody>
+            <tfoot>
+                <tr>
+                    <th colspan="3" class="text-right">Часы</th>
+                    <td>{{ curriculum_unit.hours_att_1 }}</td>
+                    <td>{{ curriculum_unit.hours_att_2 }}</td>
+                    <td>{{ curriculum_unit.hours_att_3 }}</td>
+                    <th colspan="{{ {'test_simple': 1, 'test_diff': 3, 'exam': 4}[curriculum_unit.mark_type] }}">Всего: {{ curriculum_unit.hours }}</th>
+                </tr>
+            </tfoot>
             </table>
 
-
+            {% if current_user.role_name == 'AdminUser' %}
             {{ bootstrap_form_button(form.button_clear, class_="btn btn-danger")|safe }}
+            {% endif %}
+            <div class="form-group">
+                <a class="btn btn-primary text-white" data-toggle="modal" data-target="#modalFormCSVImport">Иморт из CSV</a>
+            </div>
             {{ bootstrap_form_button(form.button_save, class_="btn btn-success")|safe }}
         </form>
     </div>
-    <script type="text/javascript">
+    {% if form_relative_curriculum_units != None %}
+    <!-- Modal View -->
+    <div class="modal fade" id="modalFormView" tabindex="-1" role="dialog" aria-labelledby="modalFormViewTitle" aria-hidden="true" data-keyboard="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalFormViewTitle">Добавить группы к ведомости</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form method="get">
+                    {% autoescape false %}
+                    <div class="modal-body">
+                        {% for e in form_relative_curriculum_units.relative_curriculum_units %}
+                        <div class="form-group mx-auto row">
+                            {{ e.label(class_="col-form-label col-sm-10 col-10") }}
+                            {{ e(class_="form-control col-sm-2 col-2") }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="modal-footer justify-content-between">
+                        <div class="w-100">
+                            <input class="btn btn-block btn-primary col-sm-4 float-right" type="submit" value="Показать"/>
+                        </div>
+                    </div>
+                    {% endautoescape %}
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- End modal view -->
+    {% endif %}
+    <!-- Modal CSV Import -->
+    <div class="modal fade" id="modalFormCSVImport" tabindex="-1" role="dialog" aria-labelledby="modalFormCSVImportTitle" aria-hidden="true" data-keyboard="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalFormCSVImportTitle">Импорт данных из CSV</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+					<div class="form-group mx-auto row">
+                        <div class="col-6">
+                            <label class="col-form-label" for="formCSVImportSplitter">Разделитель:</label>
+							<select class="form-control" id="formCSVImportSplitter">
+								<option value="tab">Табуляция</option>
+                                <option value="space">Пробел</option>
+								<option value="comma">,</option>
+							</select>
+                        </div>
+                        <div class="col-6">
+							<label class="col-form-label" for="formCSVImportStudentNameFormat">Формат имени:</label>
+							<select class="form-control" id="formCSVImportStudentNameFormat">
+								<option value="full_name">Иванов Иван Иванович</option>
+								<option value="full_name_short">Иванов И. И.</option>
+								<option value="full_name_2">Иванов Иван</option>
+                                <option value="id">Номер студенческого билета</option>
+							</select>
+						</div>
+                    </div>
+                    <div class="mx-auto row">
+                        Столбцы для импорта:
+                    </div>
+                    <div class="form-group mx-auto row">
+						<label class="col-2 col-form-label" for="formCSVImportColumnAtt1">1 атт:</label>
+						<input class="col-1 form-control" id="formCSVImportColumnAtt1" type="checkbox"/>
+
+						<label class="col-2 col-form-label" for="formCSVImportColumnAtt2">2 атт:</label>
+						<input class="col-1 form-control" id="formCSVImportColumnAtt2" type="checkbox"/>
+
+						<label class="col-2 col-form-label" for="formCSVImportColumnAtt3">3 атт:</label>
+						<input class="col-1 form-control" id="formCSVImportColumnAtt3" type="checkbox"/>
+
+                        {% if curriculum_unit.mark_type == 'exam' %}
+                        <label class="col-2 col-form-label" for="formCSVImportColumnExam">Экзамен:</label>
+						<input class="col-1 form-control" id="formCSVImportColumnExam" type="checkbox"/>
+                        {% endif %}
+                        {% if curriculum_unit.mark_type in ('exam', 'test_diff') %}
+                        <label class="col-2 col-form-label" for="formCSVImportColumnAppendBall">Доп. балл:</label>
+						<input class="col-1 form-control" id="formCSVImportColumnAppendBall" type="checkbox"/>
+                        {% endif %}
+                    </div>
+                    <div class="form-group mx-auto row">
+                        <label for="formCSVImportData">Данные в формате CSV:</label>
+                        <textarea class="form-control rounded-0" id="formCSVImportData" rows="{{ curriculum_unit.att_marks|length - curriculum_unit.att_marks_readonly_ids|length }}"></textarea>
+                    </div>
+                    <div class="form-group mx-auto row">
+                        <label for="formCSVImportFeedback" id="formCSVImportFeedbackLabel" style="display:none;">Результат импорта:</label>
+                        <textarea readonly class="form-control rounded-0 text-white" id="formCSVImportFeedback" rows="1" style="display:none;"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-between">
+					<div class="w-100">
+                        <button id="formCSVImportButtonImport" class="btn btn-primary col-4">Импорт</button>
+                        <button id="formCSVImportButtonOK" class="btn btn-success col-4" style="display:none;">ОК</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End modal CSV Import -->
+
+
+    {% if current_user.role_name == 'AdminUser' %}
+    <script>
         /*Вставка javascript предупреждение об очистке ведомости*/
         $(document).ready(function(){
             $('#formAttMarks [name=button_clear]').click(function(){
@@ -171,6 +302,223 @@
             });
         });
     </script>
+    {% endif %}
+    <!-- CSV Import -->
+    <script>
+        var mark_type = "{{ curriculum_unit.mark_type }}";
+        var students = [
+        {% for att_mark in curriculum_unit.att_marks %}
+            {% if att_mark.att_mark_id not in curriculum_unit.att_marks_readonly_ids %}
+            {% set s = att_mark.student %}
+            {id: {{ s.id }}, full_name: "{{ s.full_name }}", full_name_short: "{{ s.full_name_short }}", full_name_2: "{{ s.surname }} {{ s.firstname }}" }{% if not loop.last %},{% endif %}
+            {% endif %}
+        {% endfor %}
+        ];
+        var csv_ui = {
+            splitter: $('#formCSVImportSplitter'),
+            studentNameFormat: $('#formCSVImportStudentNameFormat'),
+            colsInclude: {
+                attMark1: $('#formCSVImportColumnAtt1'),
+                attMark2: $('#formCSVImportColumnAtt2'),
+                attMark3: $('#formCSVImportColumnAtt3'),
+                attMarkExam: $('#formCSVImportColumnExam'),
+                attMarkAppendBall: $('#formCSVImportColumnAppendBall')
+            },
+            data: $('#formCSVImportData'),
+            feedback: {
+                label: $('#formCSVImportFeedbackLabel'),
+                data: $('#formCSVImportFeedback')
+            },
+            buttons: {
+                import: $('#formCSVImportButtonImport'),
+                ok: $('#formCSVImportButtonOK')
+            }
+        }
+        var csv_data = null
+        csv_ui.buttons.import.click(function(){
+            csv_data = {}
+            var csv_errors = []
+            var cols_import = []
+            for (var col in csv_ui.colsInclude)
+            {
+                if (csv_ui.colsInclude[col].prop("checked")) cols_import.push(col);
+            }
+            if (cols_import.length == 0)
+            {
+                alert("Не выбран ни один столбец для импорта");
+                return;
 
+            }
+            var lines = csv_ui.data.val().split("\n");
+            var split_symb = null;
+            switch (csv_ui.splitter.val())
+            {
+                case "tab":
+                    split_symb="\t";
+                    break;
+                case "space":
+                    split_symb=" ";
+                    break;
+                case "comma":
+                    split_symb=",";
+                    break;
+            }
+            var studentNameFormat = csv_ui.studentNameFormat.val()
+            for (var row=0; row<lines.length; row++)
+            {
+                var line = lines[row];
+                if (line.trim() == "") continue;
+                var split_pos = []
+                for (j=0; j<line.length; j++)
+                {
+                    if (line[j] == split_symb) split_pos.push(j);
+                }
+                split_pos = split_pos.slice(-1*cols_import.length);
+                if (split_pos.length<cols_import.length)
+                {
+                    csv_errors.push({row:row+1, message: "Недостаточно столбцов в строке"});
+                    continue;
+                }
+                split_pos.push(line.length)
+
+                var student_name = line.substring(0,split_pos[0]).trim();
+                var student_id = null
+                for (var j in students)
+                {
+                    var student = students[j];
+                    if (student[studentNameFormat] == student_name)
+                    {
+                        if (student_id === null)
+                        {
+                            student_id = student.id;
+                        }
+                        else
+                        {
+                            csv_errors.push({row:row+1, message: "Не возможно однозначно определить студента '" + student_name+"'"});
+                            student_id = undefined;
+                            break;
+                        }
+                    }
+                }
+                if (student_id === undefined) continue;
+                if (student_id === null) {
+                    csv_errors.push({row:row+1, message: "Не найден студент '" + student_name+"'"});
+                    continue;
+                }
+                var line_res={}
+                for (var j=0; j<cols_import.length;j++)
+                {
+                    var col_import = cols_import[j];
+                    var val = line.substring(split_pos[j]+1, split_pos[j+1]);
+                    if ((val.trim() == "") && (col_import == "attMarkAppendBall"))
+                    {
+                        val = "";
+                        line_res[col_import] = val;
+                    }
+                    else
+                    {
+                        var val_i = parseInt(val);
+                        if (isNaN(val_i))
+                        {
+                            csv_errors.push({row:row+1, student_id:student_id, message: "Значение '"+val+"' не является целым числом"});
+                        }
+                        else
+                        {
+                            var is_valid = ((val_i>=0) && (val_i <= (col_import == "attMarkAppendBall" ? 10 : 50 )));
+                            if (!is_valid)
+                            {
+                                csv_errors.push({row:row+1, student_id:student_id, message: "Указано недопустимое значение '"+col_import+"'"});
+                            }
+                            else
+                            {
+                                line_res[col_import] = val_i;
+                            }
+                        }
+                    }
+                }
+                if (Object.keys(line_res).length<cols_import.length) continue;
+                csv_data[student_id] = line_res;
+            }
+            for (var j in students)
+            {
+                var student = students[j];
+                if (csv_data[student.id] === undefined)
+                {
+                    var has_err_student_id = false;
+                    for (var k in csv_errors)
+                    {
+                        if ((csv_errors[k].student_id !== undefined) && (csv_errors[k].student_id == student.id))
+                        {
+                            has_err_student_id = true;
+                            break;
+                        }
+                    }
+                    if (has_err_student_id)
+                    {
+                        csv_errors.push({message: "Не обработана из-за ошибок запись '"+student.id.toString()+"': '"+student[studentNameFormat]+"'"});
+                    }
+                    else
+                    {
+                        csv_errors.push({message: "Не найдена запись '"+student.id.toString()+"': '"+student[studentNameFormat]+"'"});
+                    }
+                }
+            }
+
+            csv_ui.feedback.label.show()
+            csv_ui.feedback.data.show();
+            if (csv_errors.length > 0)
+            {
+                csv_ui.feedback.data.attr("rows", csv_errors.length);
+
+                csv_ui.feedback.data.val(csv_errors.map(function(v){
+                    return (v.row ? "Строка "+v.row.toString()+": ": "")+v.message;
+                }).join("\n"));
+                csv_ui.feedback.data.removeClass('bg-success');
+                csv_ui.feedback.data.addClass('bg-danger');
+            }
+            else
+            {
+                csv_ui.feedback.data.attr("rows", csv_errors.length);
+                csv_ui.feedback.data.removeClass('bg-danger');
+                csv_ui.feedback.data.addClass('bg-success');
+                csv_ui.feedback.data.val("Успешно");
+            }
+
+            if (Object.keys(csv_data).length > 0)
+            {
+                csv_ui.buttons.ok.show();
+            }
+        });
+        csv_ui.buttons.ok.click(function(){
+            if (csv_data)
+            {
+                for (var student_id in csv_data){
+                    var row = csv_data[student_id]
+                    $('[data-student-id="'+student_id+'"]').each(function(i,e){
+                        if (e.disabled) return;
+                        var data = $(e).data();
+                        for (var key in data)
+                        {
+                            if (row[key] !== undefined){
+                                $(e).data(key, row[key]);
+                                $(e).val( row[key]);
+                            }
+                        }
+                    });
+                }
+            }
+             $('#modalFormCSVImport').modal('hide');
+        });
+        /*
+        $('#modalFormCSVImport').on('hidden.bs.modal', function () {
+            csv_ui.feedback.label.hide()
+            csv_ui.feedback.data.hide();
+            csv_ui.buttons.ok.hide();
+            csv_ui.data.val("");
+        });
+        */
+
+    </script>
+    <!-- End CSV Import -->
 </body>
 </html>

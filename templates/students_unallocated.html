@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<head>
+    {% from "_macros_bootstrap" import bootstrap_form_input, bootstrap_form_button with context %}
+    <meta charset="UTF-8">
+    <title>Нераспределённые студенты</title>
+    {% include '_header.html' %}
+</head>
+<body>
+    {% include '_menu.html' %}
+    <div class="container">
+        <h2>Нераспределённые студенты</h2>
+        {% if result %}
+        <div class="container">
+            <h4>Следующие студенты {{ result['semester'] }} семестра были распределены в группу <a href="{{ url_for('stud_group', id=result['stud_group'].id) }}" target="_blank">{{ result['stud_group'].num_print }}</a></h4>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>№ п/п</th>
+                        <th>№ студ. билета</th>
+                        <th>ФИО</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in result['students'] %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td><a href="{{ url_for('student', id=s.id) }}" target="_blank">{{ s.id }}</a></td>
+                        <td><a href="{{ url_for('student', id=s.id) }}" target="_blank">{{ s.full_name }}</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+        <ul class="nav nav-tabs" role="tablist">
+            {% for semester in semesters %}
+            <li class="nav-item"><a class="nav-link{% if loop.index0 == 0 %} active{% endif %}" href="#semester_{{semester}}" role="tab" data-toggle="tab">{{semester}} семестр</a></li>
+            {% endfor %}
+        </ul>
+        <div class="tab-content">
+            {% for form in forms %}
+            {% set semester = semesters[loop.index0] %}
+            <div role="tabpanel" class="tab-pane fade{% if loop.index0 == 0 %} show active{% endif %}" id="semester_{{semester}}">
+                <h3>{{semester}} семестр</h3>
+                <form method="post" action="#semester_{{semester}}">
+            	    {% autoescape false %}
+                    {{ form.semester }}
+                    {% for student_selected in form.students_selected %}
+                        {% if result == None or student_selected.data not in result['student_ids'] %}
+                        {{ bootstrap_form_input(student_selected) }}
+                        {% endif %}
+                    {% endfor %}
+                    {{ bootstrap_form_input(form.stud_group) }}
+                    {{ bootstrap_form_button(form.button_transfer) }}
+                    {% endautoescape %}
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+
+    </div>
+
+</body>
+</html>

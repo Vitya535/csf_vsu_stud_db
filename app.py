@@ -5,8 +5,11 @@ from flask import request, render_template, redirect, url_for, send_from_directo
 from flask_login import LoginManager, login_required, login_user, logout_user, current_user
 
 from app_config import app, db
-from model import StudGroup, Subject, Teacher, Student, CurriculumUnit, AttMark, AdminUser
-from forms import StudGroupForm, StudentForm, StudentSearchForm, SubjectForm, TeacherForm, CurriculumUnitForm, CurriculumUnitAttMarksForm, AdminUserForm, LoginForm
+from model import StudGroup, Subject, Teacher, Student, CurriculumUnit, CurriculumUnitUnion, AttMark, AdminUser, Person
+from forms import StudGroupForm, StudentForm, StudentSearchForm, SubjectForm, TeacherForm, CurriculumUnitForm, \
+    CurriculumUnitCopyForm, CurriculumUnitUnionForm, CurriculumUnitAddAppendStudGroupForm, AdminUserForm, LoginForm
+from forms import StudentsUnallocatedForm
+
 
 from sqlalchemy import not_
 
@@ -25,7 +28,16 @@ def login():
     form = LoginForm(request.form)
     if form.button_login.data and form.validate():
         user_name = form.login.data
-        user = load_user(user_name)
+        role_name = form.user_type.data
+        user = None
+        class_map = Person.get_class_map()
+        if not role_name:
+            for clazz in class_map.values():
+                user = user or db.session.query(clazz).filter(clazz.login == user_name).one_or_none()
+        elif role_name in class_map.keys():
+            clazz = class_map[role_name]
+            user = user or db.session.query(clazz).filter(clazz.login == user_name).one_or_none()
+
         if user is not None:
             password = form.password.data
             if password_checker(user_name, password):
@@ -41,10 +53,15 @@ def login():
 
 @login_manager.user_loader
 def load_user(user_name):
+    if "@" not in user_name:
+        return None
+    role_name, ulogin = user_name.split("@", 1)
+    class_map = Person.get_class_map()
     user = None
-    user = user or db.session.query(AdminUser).filter(AdminUser.login == user_name).one_or_none()
-    user = user or db.session.query(Teacher).filter(Teacher.login == user_name).one_or_none()
-    user = user or db.session.query(Student).filter(Student.login == user_name).one_or_none()
+    if role_name in class_map.keys():
+        clazz = class_map[role_name]
+        user = user or db.session.query(clazz).filter(clazz.login == ulogin).one_or_none()
+
     return user
 
 
@@ -68,6 +85,12 @@ def render_error(code):
 @app.route('/')
 @login_required
 def index():
+    if current_user.role_name == "Student":
+        return redirect(url_for('att_marks_report_student', id=current_user.id))
+
+    if current_user.role_name == "Teacher":
+        return redirect(url_for('teacher_report', id=current_user.id))
+
     return render_template('index.html')
 
 
@@ -111,7 +134,7 @@ def stud_group(id):
     if not group.active:
         return render_error(403)
 
-    form = StudGroupForm(request.form, obj=group)
+    form = StudGroupForm(request.form if request.method == 'POST' else None, obj=group)
 
     if form.button_save.data and form.validate():
         # unique check
@@ -167,7 +190,7 @@ def student(id):
         if s is None:
             return render_error(404)
 
-    form = StudentForm(request.form, obj=s) #WFORMS-Alchemy Объект на форму
+    form = StudentForm(request.form if request.method == 'POST' else None, obj=s)  # WFORMS-Alchemy Объект на форму
 
     if form.button_delete.data:
         form.validate()
@@ -198,6 +221,8 @@ def student(id):
         if s.stud_group is not None:
             s.status = "study"
             s.semester = s.stud_group.semester
+        else:
+            s.group_leader = False
 
         if s.status == "study":
             s.alumnus_year = None
@@ -250,13 +275,97 @@ def students():
         if form.expelled_year.data is not None:
             q = q.filter(Student.expelled_year == form.expelled_year.data)
 
+        if form.group_leader.data == 'yes':
+            q = q.filter(Student.group_leader)
+        if form.group_leader.data == 'no':
+            q = q.filter(not_(Student.group_leader))
+
         if form.login.data != '':
             q = q.filter(Student.login == form.login.data)
+
+        if form.card_number.data is not None:
+            q = q.filter(Student.card_number == form.card_number.data)
 
         q = q.order_by(Student.surname, Student.firstname, Student.middlename)
         result = q.all()
 
     return render_template('students.html', students=result, form=form)
+
+
+# Нераспределённые студенты
+@app.route('/students_unallocated', methods=['GET', 'POST'])
+@login_required
+def students_unallocated():
+    if current_user.role_name != 'AdminUser':
+        return render_error(403)
+
+    q = db.session.query(Student)\
+        .filter(Student.status == "study")\
+        .filter(Student.stud_group_id.is_(None)) \
+        .order_by(Student.semester, Student.surname, Student.firstname, Student.middlename)
+    students = q.all()
+
+    result = {}
+    for s in students:
+        if s.semester not in result:
+            result[s.semester] = []
+        result[s.semester].append(s)
+
+    r_form = None
+    forms = []
+    semesters = sorted(result.keys())
+    for semester in semesters:
+        _students = result[semester]
+        if 'semester' in request.form and request.form['semester'].isdigit() and int(request.form['semester']) == semester:
+            r_form = form = StudentsUnallocatedForm(request.form)
+        else:
+            form = StudentsUnallocatedForm()
+            form.semester.data = semester
+
+        form.students_selected.query_factory = lambda: _students
+
+        form.stud_group.query_factory = \
+            lambda: db.session.query(StudGroup)\
+                .filter(StudGroup.semester == semester)\
+                .filter(StudGroup.active)\
+                .order_by(StudGroup.num, StudGroup.subnum).all()
+
+        forms.append(form)
+
+    # Перенос студентов в группы
+    result_transfer = None
+    if r_form is not None:
+        if r_form.button_transfer.data and r_form.validate() and len(r_form.students_selected.data) > 0:
+            g = r_form.stud_group.data
+            semester = int(r_form.semester.data)
+            result_transfer = {
+                "students": [],
+                "stud_group": g,
+                "semester": semester
+            }
+
+            for s in r_form.students_selected.data:
+                s.stud_group = g
+                db.session.add(s)
+                result_transfer["students"].append(s)
+                result[semester].remove(s)
+            db.session.commit()
+            # удалить пустую форму
+            if len(result[semester]) == 0:
+                forms.remove(r_form)
+                semesters.remove(semester)
+
+            result_transfer["student_ids"] = set(str(s.id) for s in result_transfer["students"])
+
+    return render_template('students_unallocated.html', forms=forms, semesters=semesters, result=result_transfer)
+
+
+# Перевод студентов на следующий семестр
+@app.route('/students_transfer', methods=['GET', 'POST'])
+@login_required
+def students_transfer():
+    if current_user.role_name != 'AdminUser':
+        return render_error(403)
 
 
 @app.route('/subjects')
@@ -284,7 +393,7 @@ def subject(id):
         if s is None:
             return render_error(404)
 
-    form = SubjectForm(request.form, obj=s)
+    form = SubjectForm(request.form if request.method == 'POST' else None, obj=s)
     if form.button_delete.data:
         form.validate()
         if db.session.query(CurriculumUnit).filter(CurriculumUnit.subject_id == s.id).count() > 0:
@@ -330,7 +439,7 @@ def teacher(id):
         if t is None:
             return render_error(404)
 
-    form = TeacherForm(request.form, obj=t)
+    form = TeacherForm(request.form if request.method == 'POST' else None, obj=t)
 
     if form.button_delete.data:
         form.validate()
@@ -351,6 +460,27 @@ def teacher(id):
             return redirect(url_for('teacher', id=t.id))
 
     return render_template('teacher.html', teacher=t, form=form)
+
+
+@app.route('/teacher_report/<int:id>')
+@login_required
+def teacher_report(id):
+    # Проверка прав доступа
+    if not (current_user.role_name == 'AdminUser' or (
+            current_user.role_name == "Teacher" and current_user.id == id)):
+        return render_error(403)
+
+    t = db.session.query(Teacher).filter(Teacher.id == id).one_or_none()
+    if t is None:
+        return render_error(404)
+
+    curriculum_units = db.session.query(CurriculumUnit).join(StudGroup)\
+        .filter(CurriculumUnit.teacher_id == id)\
+        .filter(StudGroup.active)\
+        .order_by(CurriculumUnit.subject_id, StudGroup.semester, StudGroup.num, StudGroup.subnum)\
+        .all()
+
+    return render_template('teacher_report.html', curriculum_units=curriculum_units, teacher=t)
 
 
 @app.route('/curriculum_unit/<id>', methods=['GET', 'POST'])
@@ -377,7 +507,7 @@ def curriculum_unit(id):
         if cu is None:
             return render_error(404)
 
-    form = CurriculumUnitForm(request.form, obj=cu)
+    form = CurriculumUnitForm(request.form if request.method == 'POST' else None, obj=cu)
 
     if form.button_delete.data:
         form.validate()
@@ -415,67 +545,139 @@ def curriculum_unit(id):
     return render_template('curriculum_unit.html', curriculum_unit=cu, form=form)
 
 
-@app.route('/att_marks/<id>', methods=['GET', 'POST'])
+@app.route('/curriculum_unit_copy/<int:id>', methods=['GET', 'POST'])
 @login_required
-def att_marks(id):
-    try:
-        id = int(id)
-    except ValueError:
-        return render_error(400)
+def curriculum_unit_copy(id):
+    if current_user.role_name != 'AdminUser':
+        return render_error(403)
 
     cu = db.session.query(CurriculumUnit).filter(CurriculumUnit.id == id).one_or_none()
     if cu is None:
         return render_error(404)
 
+    form = CurriculumUnitCopyForm(request.form)
+    form.stud_groups_selected.query_factory = lambda: db.session.query(StudGroup).\
+        filter(StudGroup.active).\
+        filter(StudGroup.year == cu.stud_group.year).\
+        filter(StudGroup.semester == cu.stud_group.semester).\
+        filter(not_(StudGroup.id.in_(db.session.query(CurriculumUnit.stud_group_id).filter(CurriculumUnit.subject_id == cu.subject.id).subquery()))).\
+        order_by(StudGroup.num, StudGroup.subnum).all()
+
+    stud_group_ids = set()
+    if form.button_copy.data and form.validate() and len(form.stud_groups_selected.data) > 0:
+        for sg in form.stud_groups_selected.data:
+            cu_new = CurriculumUnit(
+                stud_group=sg,
+                subject=cu.subject,
+                teacher=cu.teacher,
+                hours_att_1=cu.hours_att_1,
+                hours_att_2=cu.hours_att_2,
+                hours_att_3=cu.hours_att_3,
+                mark_type=cu.mark_type
+            )
+            db.session.add(cu_new)
+            stud_group_ids.add(sg.id)
+        db.session.commit()
+
+    curriculum_units_other = db.session.query(CurriculumUnit).join(StudGroup).\
+        filter(StudGroup.semester == cu.stud_group.semester).\
+        filter(CurriculumUnit.subject_id == cu.subject.id).\
+        filter(StudGroup.id != cu.stud_group.id).\
+        order_by(StudGroup.num, StudGroup.subnum).all()
+
+    return render_template('curriculum_unit_copy.html',
+                           curriculum_unit=cu,
+                           curriculum_units_other=curriculum_units_other,
+                           stud_group_ids=stud_group_ids,
+                           form=form)
+
+
+@app.route('/att_marks/<int:id>', methods=['GET', 'POST'])
+@login_required
+def att_marks(id):
+    cu_first = db.session.query(CurriculumUnit).filter(CurriculumUnit.id == id).one_or_none()
+    if cu_first is None:
+        return render_error(404)
+
     # Проверка прав доступа
-    if not (current_user.role_name == 'AdminUser' or (current_user.role_name == "Teacher" and current_user.id == cu.teacher_id)):
+    if not (current_user.role_name == 'AdminUser' or (current_user.role_name == "Teacher" and current_user.id == cu_first.teacher_id)):
         return render_error(403)
 
     # запрет для редактирования оценок для неактивной студенческой группы
-    if not cu.stud_group.active:
+    if not cu_first.stud_group.active:
         return render_error(403)
 
-    # Создание записей AttMark если их нет для данной единицы учебного плана
-    _students = db.session.query(Student).filter(Student.stud_group_id == cu.stud_group.id).\
-        filter(not_(Student.id.in_(db.session.query(AttMark.student_id).filter(AttMark.curriculum_unit_id == id)))).\
+    # Доп. единицы учебного плана для объединённой ведомости на несколько групп (подгрупп)
+    curriculum_units_relative = db.session.query(CurriculumUnit).join(StudGroup).\
+        filter(CurriculumUnit.id != cu_first.id).\
+        filter(StudGroup.active).\
+        filter(StudGroup.year == cu_first.stud_group.year).\
+        filter(StudGroup.semester == cu_first.stud_group.semester).\
+        filter(CurriculumUnit.subject_id == cu_first.subject.id).\
+        filter(CurriculumUnit.teacher_id == cu_first.teacher.id).\
+        filter(CurriculumUnit.mark_type == cu_first.mark_type).\
+        filter(CurriculumUnit.hours_att_1 == cu_first.hours_att_1).\
+        filter(CurriculumUnit.hours_att_2 == cu_first.hours_att_2).\
+        filter(CurriculumUnit.hours_att_3 == cu_first.hours_att_3).\
+        order_by(StudGroup.num, StudGroup.subnum).\
         all()
-    if len(_students) > 0:
-        for s in _students:
-            att_mark = AttMark(curriculum_unit=cu, student=s)
-            db.session.add(att_mark)
-        db.session.flush()
-        db.session.commit()
-        cu = db.session.query(CurriculumUnit).filter(CurriculumUnit.id == id).one_or_none()
 
-    cu.att_marks.sort(key=lambda m: (m.student.surname, m.student.firstname, m.student.middlename))
-    # Строки доступные только для чтения
-    att_marks_readonly_ids = tuple(m.att_mark_id for m in cu.att_marks if m.student.stud_group_id != cu.stud_group_id)
+    curriculum_units = [cu_first]
 
-    form = CurriculumUnitAttMarksForm(request.form, obj=cu)
+    form_relative_curriculum_units = None
+    if len(curriculum_units_relative) > 0:
+        form_relative_curriculum_units = CurriculumUnitAddAppendStudGroupForm(request.args)
+        form_relative_curriculum_units.relative_curriculum_units.query_factory = lambda: curriculum_units_relative
+        curriculum_units.extend(form_relative_curriculum_units.relative_curriculum_units.data)
+
+    for cu in curriculum_units:
+        # Создание записей AttMark если их нет для данной единицы учебного плана
+        _students = db.session.query(Student).filter(Student.stud_group_id == cu.stud_group.id).\
+            filter(not_(Student.id.in_(db.session.query(AttMark.student_id).filter(AttMark.curriculum_unit_id == cu.id).subquery()))).\
+            all()
+        if len(_students) > 0:
+            for s in _students:
+                att_mark = AttMark(curriculum_unit=cu, student=s)
+                cu.att_marks.append(att_mark)
+                db.session.add(att_mark)
+            db.session.commit()
+
+    curriculum_units.sort(key=lambda cu: (cu.stud_group.num, cu.stud_group.subnum))
+    cu_union = CurriculumUnitUnion(curriculum_units)
+
+    form = CurriculumUnitUnionForm(request.form, obj=cu_union)
 
     if form.button_clear.data:
-        db.session.query(AttMark).filter(AttMark.curriculum_unit_id == id).delete()
+        if current_user.role_name != 'AdminUser':
+            return render_error(403)
+
+        db.session.query(AttMark).filter(AttMark.curriculum_unit_id.in_(cu_union.ids)).delete(synchronize_session=False)
         db.session.flush()
         db.session.commit()
-        return redirect(url_for('curriculum_unit', id=cu.id))
+        return redirect(url_for('curriculum_unit', id=cu_first.id))
 
     if form.button_save.data and form.validate():
-        form.populate_obj(cu)
-        for m in cu.att_marks:
-            if m.att_mark_id not in att_marks_readonly_ids:
+        for f_elem in form.att_marks:
+            m = f_elem.object_data
+            # update att_mark
+            if m.att_mark_id not in cu_union.att_marks_readonly_ids:
+                for k, v in f_elem.data.items():
+                    setattr(m, k, v)
                 db.session.add(m)
+
         db.session.commit()
 
-    return render_template('att_marks.html', curriculum_unit=cu, form=form, att_marks_readonly_ids=att_marks_readonly_ids)
+    return render_template(
+        'att_marks.html',
+        curriculum_unit=cu_union,
+        form=form,
+        form_relative_curriculum_units=form_relative_curriculum_units
+    )
 
 
-@app.route('/att_marks_report_stud_group/<id>')
+@app.route('/att_marks_report_stud_group/<int:id>')
 @login_required
 def att_marks_report_stud_group(id):
-    try:
-        id = int(id)
-    except ValueError:
-        return render_error(400)
     group = db.session.query(StudGroup).filter(StudGroup.id == id).one_or_none()
 
     if group is None:
@@ -486,7 +688,7 @@ def att_marks_report_stud_group(id):
     ball_avg =[]
 
     for cu_index in range(len(group.curriculum_units)):
-        ball_avg.append({"att_mark_1":0, "att_mark_2": 0, "att_mark_3":0, "total":0})
+        ball_avg.append({"att_mark_1": 0, "att_mark_2": 0, "att_mark_3": 0, "total": 0})
 
     for cu_index, cu in enumerate(group.curriculum_units):
         for att_mark in cu.att_marks:
@@ -517,13 +719,9 @@ def att_marks_report_stud_group(id):
     return render_template('att_marks_report_stud_group.html', stud_group=group, result=result, ball_avg=ball_avg)
 
 
-@app.route('/att_marks_report_student/<id>')
+@app.route('/att_marks_report_student/<int:id>')
 @login_required
 def att_marks_report_student(id):
-    try:
-        id = int(id)
-    except ValueError:
-        return render_error(400)
     s = db.session.query(Student).filter(Student.id == id).one_or_none()
 
     if s is None:
@@ -540,9 +738,10 @@ def att_marks_report_student(id):
 def admin_users():
     if current_user.role_name != 'AdminUser':
         return render_error(403)
-    return render_template('admin_users.html',
-                           admin_users=db.session.query(AdminUser).order_by(AdminUser.surname, AdminUser.firstname,
-                                                                       AdminUser.middlename))
+    return render_template(
+        'admin_users.html',
+        admin_users=db.session.query(AdminUser).order_by(AdminUser.surname, AdminUser.firstname, AdminUser.middlename)
+    )
 
 
 @app.route('/admin_user/<id>', methods=['GET', 'POST'])
@@ -561,7 +760,7 @@ def admin_user(id):
         if u is None:
             return render_error(404)
 
-    form = AdminUserForm(request.form, obj=u)
+    form = AdminUserForm(request.form if request.method == 'POST' else None, obj=u)
 
     if form.button_delete.data:
         db.session.delete(u)
@@ -580,7 +779,7 @@ def admin_user(id):
     return render_template('admin_user.html', admin_user=u, form=form)
 
 
-app.register_error_handler(404, lambda x: render_error(404))
+app.register_error_handler(404, lambda code: render_error(404))
 
 
 if __name__ == '__main__':

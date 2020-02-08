@@ -25,6 +25,9 @@
            {{ bootstrap_form_button(form.button_save, class_="btn btn-success") }}
            {% endautoescape %}
         </form>
+        {% if teacher.id %}
+            <a href="{{url_for('teacher_report', id=teacher.id)}}" class="btn btn-primary">Личный кабинет преподавателя</a>
+        {% endif %}
     </div>
 </body>
 </html>

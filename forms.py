@@ -2,8 +2,9 @@ from datetime import datetime
 
 from app_config import db
 from model import StudGroup, Subject, Teacher, Student, StudentStates, StudentStateDict, CurriculumUnit, AttMark, MarkTypes, MarkTypeDict, AdminUser
-from wtforms import validators, Form, SubmitField, IntegerField, StringField, HiddenField, PasswordField, FormField
-from wtforms_alchemy import ModelForm, ModelFieldList
+from wtforms import validators, Form, SubmitField, IntegerField, StringField, SelectField, HiddenField, PasswordField, FormField, BooleanField
+from wtforms.widgets import ListWidget, CheckboxInput
+from wtforms_alchemy import ModelForm, ModelFieldList, QuerySelectMultipleField
 from wtforms_alchemy.fields import QuerySelectField
 from wtforms_alchemy.validators import Unique
 
@@ -16,17 +17,19 @@ class _PersonForm:
         validators=[validators.Length(min=2, max=45), validators.Optional()],
         filters=[lambda val: val or None]
     )
-    login = StringField('Login',
-        validators=[
+    login = StringField('Login', filters=[lambda val: val or None])
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        clazz = self.Meta.model
+        self.login.validators = [
             validators.Optional(),
             validators.Length(min=3, max=45),
-            validators.Regexp("^[a-z0-9_]+$", message="Учётное имя может содержать только латинкие символы, цифры и знак подчёркивания"),
-            Unique(Student.login, get_session=lambda: db.session, message='Логин занят'),
-            Unique(Teacher.login, get_session=lambda: db.session, message='Логин занят'),
-            Unique(AdminUser.login, get_session=lambda: db.session, message='Логин занят')
-        ],
-        filters=[lambda val: val or None]
-    )
+            validators.Regexp("^[a-z0-9_]+$",
+                message="Учётное имя может содержать только латинкие символы, цифры и знак подчёркивания"
+            ),
+            Unique(clazz.login, get_session=lambda: db.session, message='Логин занят')
+        ]
 
 
 class StudGroupForm(ModelForm):
@@ -71,6 +74,9 @@ class StudentForm(_PersonForm, ModelForm):
     alumnus_year = IntegerField('Учебный год выпуск', [validators.NumberRange(min=2000, max=datetime.now().year + 1), validators.Optional()])
     expelled_year = IntegerField('Учебный год отчисления', [validators.NumberRange(min=2000, max=datetime.now().year + 1), validators.Optional()])
 
+    card_number = IntegerField('Номер карты (пропуска)', [validators.Optional(), validators.NumberRange(min=1), Unique(Student.card_number, get_session=lambda: db.session, message='Номер занят')])
+    group_leader = BooleanField('Староста')
+
     button_save = SubmitField('Сохранить')
     button_delete = SubmitField('Удалить')
 
@@ -97,13 +103,33 @@ class StudentSearchForm(Form):
     expelled_year = IntegerField('Учебный год отчисления',
                                  [validators.NumberRange(min=2000, max=datetime.now().year + 1), validators.Optional()])
     login = StringField('Login')
+    card_number = IntegerField('Номер карты (пропуска)', [validators.Optional(), validators.NumberRange(min=1)])
+    group_leader = SelectField('Староста', choices=[('any', 'Не важно'), ('yes', 'Да'), ('no', 'Нет')])
     button_search = SubmitField('Поиск')
+
+
+class StudentsUnallocatedForm(Form):
+    semester = HiddenField()
+    students_selected = QuerySelectMultipleField(
+        'Студенты',
+        get_pk=lambda s: s.id,
+        get_label=lambda s: "%d %s" % (s.id, s.full_name),
+        widget=ListWidget(prefix_label=False),
+        option_widget=CheckboxInput()
+    )
+    stud_group = QuerySelectField('Группа в которую нужно перевести',
+                                  get_pk=lambda g: g.id,
+                                  get_label=lambda g: g.num_print,
+                                  blank_text='Не указана', allow_blank=True,
+                                  validators=[validators.DataRequired('Укажите группу')])
+
+    button_transfer = SubmitField('Перевести в выбранную группу')
 
 
 class SubjectForm(ModelForm):
     class Meta:
         model = Subject
-    name = StringField('Название предмета', [validators.DataRequired(), Unique(Subject.name, get_session=lambda: db.session, message='Предмет с таким названием существует')])
+    name = StringField('Название предмета', [validators.DataRequired(), validators.Length(min=3, max=Subject.name.property.columns[0].type.length), Unique(Subject.name, get_session=lambda: db.session, message='Предмет с таким названием существует')])
     button_save = SubmitField('Сохранить')
     button_delete = SubmitField('Удалить')
 
@@ -171,15 +197,36 @@ class CurriculumUnitForm(ModelForm):
     button_delete = SubmitField('Удалить')
 
 
-class CurriculumUnitAttMarksForm(CurriculumUnitForm):
+class CurriculumUnitUnionForm(ModelForm):
     att_marks = ModelFieldList(FormField(AttMarkForm))
+    button_save = SubmitField('Сохранить')
     button_clear = SubmitField('Очистить данные ведомости')
+
+
+class CurriculumUnitAddAppendStudGroupForm(Form):
+    relative_curriculum_units = QuerySelectMultipleField(
+        'Группы',
+        get_pk=lambda cu: cu.id,
+        get_label=lambda cu: cu.stud_group.num_print,
+        widget=ListWidget(prefix_label=False),
+        option_widget=CheckboxInput()
+    )
+
+
+class CurriculumUnitCopyForm(Form):
+    stud_groups_selected = QuerySelectMultipleField(
+        'Группы',
+        get_pk=lambda g: g.id,
+        get_label=lambda g: "%s %s%s" % (g.num_print, g.specialty, " (%s)" % g.specialization if g.specialization else ""),
+        widget=ListWidget(prefix_label=False),
+        option_widget=CheckboxInput()
+    )
+    button_copy = SubmitField('Копировать')
 
 
 class AdminUserForm(_PersonForm, ModelForm):
     class Meta:
         model = AdminUser
-
     button_save = SubmitField('Сохранить')
     button_delete = SubmitField('Удалить')
 
@@ -187,4 +234,5 @@ class AdminUserForm(_PersonForm, ModelForm):
 class LoginForm(Form):
     login = StringField('Login')
     password = PasswordField('Пароль')
+    user_type = SelectField('Тип пользователя', choices=[('', 'Авто'), ('Student', 'Студент'), ('Teacher', 'Преподаватель'), ('AdminUser', 'Администратор')])
     button_login = SubmitField('Вход')

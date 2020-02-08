@@ -26,7 +26,13 @@
                     <td>{{ g.year_print }}</td>
                     <td>{{ g.course }}</td>
                     <td>{{ g.semester }}</td>
-                    <td><a href="{{url_for('stud_group', id=g.id)}}">{{ g.num_print }}</a></td>
+                    <td>
+                        {% if current_user.role_name == 'AdminUser' %}
+                        <a href="{{url_for('stud_group', id=g.id)}}">{{ g.num_print }}</a>
+                        {% else %}
+                        {{ g.num_print }}
+                        {% endif %}
+                    </td>
                     <td>
                         {{ g.specialty }}
                     </td>

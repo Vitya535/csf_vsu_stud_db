@@ -6,7 +6,7 @@
 </head>
 <body>
     {% include '_menu.html' %}
-    <div class="container">
+    <div class="container-fluid">
         <h2>Свод оценок рубежных аттестаций</h2>
         <dl class="row">
             <dt class="col-sm-3">
@@ -31,9 +31,13 @@
                 Группа:
             </dt>
             <dd class="col-sm-3">
+                {% if current_user.role_name == 'AdminUser' %}
                 <a href="{{ url_for('stud_group', id=stud_group.id, _anchor='curriculum_units') }}">
                     {{ stud_group.num_print }}
                 </a>
+                {% else %}
+                    {{ stud_group.num_print }}
+                {% endif %}
             </dd>
         </dl>
         <table class="table table-bordered">
@@ -51,7 +55,13 @@
                 </tr>
                 <tr>
                     {% for cu in stud_group.curriculum_units %}
-                        <th colspan="4">{{ cu.mark_type_name }}</th>
+                        <th colspan="4">
+                            {% if (current_user.role_name == 'AdminUser') or (current_user.role_name == 'Teacher' and current_user.id == cu.teacher.id) %}
+                            <a href="{{ url_for('att_marks', id=cu.id) }}">{{ cu.mark_type_name }}</a>
+                            {% else %}
+                            {{ cu.mark_type_name }}
+                            {% endif %}
+                        </th>
                     {% endfor %}
                 </tr>
                 <tr>
