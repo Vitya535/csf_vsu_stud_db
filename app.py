@@ -269,6 +269,9 @@ def students():
         if form.stud_group.data is not None:
             q = q.filter(Student.stud_group_id == form.stud_group.data.id)
 
+        if form.semester.data is not None:
+            q = q.filter(Student.semester == form.semester.data)
+
         if form.alumnus_year.data is not None:
             q = q.filter(Student.alumnus_year == form.alumnus_year.data)
 
