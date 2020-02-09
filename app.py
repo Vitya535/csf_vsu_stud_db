@@ -1,20 +1,17 @@
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
-from flask import request, render_template, redirect, url_for, send_from_directory
+from flask import request, render_template, redirect, url_for, send_from_directory, jsonify
 from flask_login import LoginManager, login_required, login_user, logout_user, current_user
+from sqlalchemy import not_
 
 from app_config import app, db
-from model import StudGroup, Subject, Teacher, Student, CurriculumUnit, CurriculumUnitUnion, AttMark, AdminUser, Person
 from forms import StudGroupForm, StudentForm, StudentSearchForm, SubjectForm, TeacherForm, CurriculumUnitForm, \
     CurriculumUnitCopyForm, CurriculumUnitUnionForm, CurriculumUnitAddAppendStudGroupForm, AdminUserForm, LoginForm
 from forms import StudentsUnallocatedForm
-
-
-from sqlalchemy import not_
-
+from model import StudGroup, Subject, Teacher, Student, CurriculumUnit, CurriculumUnitUnion, AttMark, AdminUser, Person, \
+    Attendance, LessonType
 from password_checker import password_checker
-
 
 # flask-login
 login_manager = LoginManager()
@@ -47,7 +44,6 @@ def login():
                 form.password.errors.append("Неверный пароль")
         else:
             form.login.errors.append("Пользователя с таким учётным именем не существует")
-
     return render_template('login.html', form=form)
 
 
@@ -61,7 +57,6 @@ def load_user(user_name):
     if role_name in class_map.keys():
         clazz = class_map[role_name]
         user = user or db.session.query(clazz).filter(clazz.login == ulogin).one_or_none()
-
     return user
 
 
@@ -168,7 +163,7 @@ def stud_group(id):
         if len(form.button_delete.errors) == 0:
             db.session.delete(group)
             db.session.commit()
-            db.session.flush() # ???
+            db.session.flush()  # ???
             return redirect(url_for('stud_groups'))
 
     return render_template('stud_group.html', group=group, form=form)
@@ -204,7 +199,7 @@ def student(id):
             return redirect(url_for('students'))
 
     if form.button_save.data and form.validate():
-        form.populate_obj(s) #WFORMS-Alchemy с формы на объект
+        form.populate_obj(s)  # WFORMS-Alchemy с формы на объект
         if s.status == "alumnus":
             s.stud_group = None
             s.expelled_year = None
@@ -237,7 +232,7 @@ def student(id):
                 db.session.add(s)
                 db.session.commit()
                 if id == 'new':
-                    db.session.flush() # ???
+                    db.session.flush()  # ???
                 if s.id != id:
                     return redirect(url_for('student', id=s.id))
 
@@ -257,7 +252,7 @@ def students():
         if form.id.data is not None:
             q = q.filter(Student.id == form.id.data)
         if form.surname.data != '':
-            q = q.filter(Student.surname.like(form.surname.data+'%'))
+            q = q.filter(Student.surname.like(form.surname.data + '%'))
         if form.firstname.data != '':
             q = q.filter(Student.firstname == form.firstname.data)
         if form.middlename.data != '':
@@ -302,8 +297,8 @@ def students_unallocated():
     if current_user.role_name != 'AdminUser':
         return render_error(403)
 
-    q = db.session.query(Student)\
-        .filter(Student.status == "study")\
+    q = db.session.query(Student) \
+        .filter(Student.status == "study") \
         .filter(Student.stud_group_id.is_(None)) \
         .order_by(Student.semester, Student.surname, Student.firstname, Student.middlename)
     students = q.all()
@@ -319,7 +314,8 @@ def students_unallocated():
     semesters = sorted(result.keys())
     for semester in semesters:
         _students = result[semester]
-        if 'semester' in request.form and request.form['semester'].isdigit() and int(request.form['semester']) == semester:
+        if 'semester' in request.form and request.form['semester'].isdigit() and int(
+                request.form['semester']) == semester:
             r_form = form = StudentsUnallocatedForm(request.form)
         else:
             form = StudentsUnallocatedForm()
@@ -328,9 +324,9 @@ def students_unallocated():
         form.students_selected.query_factory = lambda: _students
 
         form.stud_group.query_factory = \
-            lambda: db.session.query(StudGroup)\
-                .filter(StudGroup.semester == semester)\
-                .filter(StudGroup.active)\
+            lambda: db.session.query(StudGroup) \
+                .filter(StudGroup.semester == semester) \
+                .filter(StudGroup.active) \
                 .order_by(StudGroup.num, StudGroup.subnum).all()
 
         forms.append(form)
@@ -423,7 +419,9 @@ def subject(id):
 def teachers():
     if current_user.role_name != 'AdminUser':
         return render_error(403)
-    return render_template('teachers.html', teachers=db.session.query(Teacher).order_by(Teacher.surname, Teacher.firstname, Teacher.middlename))
+    return render_template('teachers.html',
+                           teachers=db.session.query(Teacher).order_by(Teacher.surname, Teacher.firstname,
+                                                                       Teacher.middlename))
 
 
 @app.route('/teacher/<id>', methods=['GET', 'POST'])
@@ -447,7 +445,8 @@ def teacher(id):
     if form.button_delete.data:
         form.validate()
         if db.session.query(CurriculumUnit).filter(CurriculumUnit.teacher_id == t.id).count() > 0:
-            form.button_delete.errors.append('Невозможно удалить преподавателя, к которому привязаны единицы учебного плана')
+            form.button_delete.errors.append(
+                'Невозможно удалить преподавателя, к которому привязаны единицы учебного плана')
         if len(form.button_delete.errors) == 0:
             db.session.delete(t)
             db.session.commit()
@@ -477,10 +476,10 @@ def teacher_report(id):
     if t is None:
         return render_error(404)
 
-    curriculum_units = db.session.query(CurriculumUnit).join(StudGroup)\
-        .filter(CurriculumUnit.teacher_id == id)\
-        .filter(StudGroup.active)\
-        .order_by(CurriculumUnit.subject_id, StudGroup.semester, StudGroup.num, StudGroup.subnum)\
+    curriculum_units = db.session.query(CurriculumUnit).join(StudGroup) \
+        .filter(CurriculumUnit.teacher_id == id) \
+        .filter(StudGroup.active) \
+        .order_by(CurriculumUnit.subject_id, StudGroup.semester, StudGroup.num, StudGroup.subnum) \
         .all()
 
     return render_template('teacher_report.html', curriculum_units=curriculum_units, teacher=t)
@@ -495,7 +494,7 @@ def curriculum_unit(id):
         sg = None
         if 'stud_group_id' in request.args:
             try:
-                sg = db.session.query(StudGroup).\
+                sg = db.session.query(StudGroup). \
                     filter(StudGroup.id == int(request.args['stud_group_id'])).one_or_none()
             except ValueError:
                 sg = None
@@ -524,7 +523,7 @@ def curriculum_unit(id):
 
     if form.button_save.data and form.validate():
         # unique check
-        q = db.session.query(CurriculumUnit).filter(CurriculumUnit.stud_group_id == form.stud_group.data.id).\
+        q = db.session.query(CurriculumUnit).filter(CurriculumUnit.stud_group_id == form.stud_group.data.id). \
             filter(CurriculumUnit.subject_id == form.subject.data.id)
         if id != 'new':
             q = q.filter(CurriculumUnit.id != id)
@@ -559,11 +558,12 @@ def curriculum_unit_copy(id):
         return render_error(404)
 
     form = CurriculumUnitCopyForm(request.form)
-    form.stud_groups_selected.query_factory = lambda: db.session.query(StudGroup).\
-        filter(StudGroup.active).\
-        filter(StudGroup.year == cu.stud_group.year).\
-        filter(StudGroup.semester == cu.stud_group.semester).\
-        filter(not_(StudGroup.id.in_(db.session.query(CurriculumUnit.stud_group_id).filter(CurriculumUnit.subject_id == cu.subject.id).subquery()))).\
+    form.stud_groups_selected.query_factory = lambda: db.session.query(StudGroup). \
+        filter(StudGroup.active). \
+        filter(StudGroup.year == cu.stud_group.year). \
+        filter(StudGroup.semester == cu.stud_group.semester). \
+        filter(not_(StudGroup.id.in_(
+        db.session.query(CurriculumUnit.stud_group_id).filter(CurriculumUnit.subject_id == cu.subject.id).subquery()))). \
         order_by(StudGroup.num, StudGroup.subnum).all()
 
     stud_group_ids = set()
@@ -582,10 +582,10 @@ def curriculum_unit_copy(id):
             stud_group_ids.add(sg.id)
         db.session.commit()
 
-    curriculum_units_other = db.session.query(CurriculumUnit).join(StudGroup).\
-        filter(StudGroup.semester == cu.stud_group.semester).\
-        filter(CurriculumUnit.subject_id == cu.subject.id).\
-        filter(StudGroup.id != cu.stud_group.id).\
+    curriculum_units_other = db.session.query(CurriculumUnit).join(StudGroup). \
+        filter(StudGroup.semester == cu.stud_group.semester). \
+        filter(CurriculumUnit.subject_id == cu.subject.id). \
+        filter(StudGroup.id != cu.stud_group.id). \
         order_by(StudGroup.num, StudGroup.subnum).all()
 
     return render_template('curriculum_unit_copy.html',
@@ -603,7 +603,8 @@ def att_marks(id):
         return render_error(404)
 
     # Проверка прав доступа
-    if not (current_user.role_name == 'AdminUser' or (current_user.role_name == "Teacher" and current_user.id == cu_first.teacher_id)):
+    if not (current_user.role_name == 'AdminUser' or (
+            current_user.role_name == "Teacher" and current_user.id == cu_first.teacher_id)):
         return render_error(403)
 
     # запрет для редактирования оценок для неактивной студенческой группы
@@ -611,18 +612,18 @@ def att_marks(id):
         return render_error(403)
 
     # Доп. единицы учебного плана для объединённой ведомости на несколько групп (подгрупп)
-    curriculum_units_relative = db.session.query(CurriculumUnit).join(StudGroup).\
-        filter(CurriculumUnit.id != cu_first.id).\
-        filter(StudGroup.active).\
-        filter(StudGroup.year == cu_first.stud_group.year).\
-        filter(StudGroup.semester == cu_first.stud_group.semester).\
-        filter(CurriculumUnit.subject_id == cu_first.subject.id).\
-        filter(CurriculumUnit.teacher_id == cu_first.teacher.id).\
-        filter(CurriculumUnit.mark_type == cu_first.mark_type).\
-        filter(CurriculumUnit.hours_att_1 == cu_first.hours_att_1).\
-        filter(CurriculumUnit.hours_att_2 == cu_first.hours_att_2).\
-        filter(CurriculumUnit.hours_att_3 == cu_first.hours_att_3).\
-        order_by(StudGroup.num, StudGroup.subnum).\
+    curriculum_units_relative = db.session.query(CurriculumUnit).join(StudGroup). \
+        filter(CurriculumUnit.id != cu_first.id). \
+        filter(StudGroup.active). \
+        filter(StudGroup.year == cu_first.stud_group.year). \
+        filter(StudGroup.semester == cu_first.stud_group.semester). \
+        filter(CurriculumUnit.subject_id == cu_first.subject.id). \
+        filter(CurriculumUnit.teacher_id == cu_first.teacher.id). \
+        filter(CurriculumUnit.mark_type == cu_first.mark_type). \
+        filter(CurriculumUnit.hours_att_1 == cu_first.hours_att_1). \
+        filter(CurriculumUnit.hours_att_2 == cu_first.hours_att_2). \
+        filter(CurriculumUnit.hours_att_3 == cu_first.hours_att_3). \
+        order_by(StudGroup.num, StudGroup.subnum). \
         all()
 
     curriculum_units = [cu_first]
@@ -635,8 +636,9 @@ def att_marks(id):
 
     for cu in curriculum_units:
         # Создание записей AttMark если их нет для данной единицы учебного плана
-        _students = db.session.query(Student).filter(Student.stud_group_id == cu.stud_group.id).\
-            filter(not_(Student.id.in_(db.session.query(AttMark.student_id).filter(AttMark.curriculum_unit_id == cu.id).subquery()))).\
+        _students = db.session.query(Student).filter(Student.stud_group_id == cu.stud_group.id). \
+            filter(not_(Student.id.in_(
+            db.session.query(AttMark.student_id).filter(AttMark.curriculum_unit_id == cu.id).subquery()))). \
             all()
         if len(_students) > 0:
             for s in _students:
@@ -688,7 +690,7 @@ def att_marks_report_stud_group(id):
 
     students_map = {}
 
-    ball_avg =[]
+    ball_avg = []
 
     for cu_index in range(len(group.curriculum_units)):
         ball_avg.append({"att_mark_1": 0, "att_mark_2": 0, "att_mark_3": 0, "total": 0})
@@ -696,7 +698,8 @@ def att_marks_report_stud_group(id):
     for cu_index, cu in enumerate(group.curriculum_units):
         for att_mark in cu.att_marks:
             if att_mark.student_id not in students_map:
-                students_map[att_mark.student_id] = {"student": att_mark.student, "att_marks": [None]*len(group.curriculum_units)}
+                students_map[att_mark.student_id] = {"student": att_mark.student,
+                                                     "att_marks": [None] * len(group.curriculum_units)}
             students_map[att_mark.student_id]["att_marks"][cu_index] = att_mark
 
             for attr_name in ["att_mark_1", "att_mark_2", "att_mark_3", "total"]:
@@ -713,11 +716,11 @@ def att_marks_report_stud_group(id):
     result = list(students_map.values())
     result.sort(key=lambda r: (r["student"].surname, r["student"].firstname, r["student"].middlename))
 
-    if len(result)>0:
+    if len(result) > 0:
         for cu_index in range(len(group.curriculum_units)):
             for attr_name in ball_avg[cu_index]:
                 if ball_avg[cu_index][attr_name] is not None:
-                    ball_avg[cu_index][attr_name] = round(ball_avg[cu_index][attr_name]/len(result),2)
+                    ball_avg[cu_index][attr_name] = round(ball_avg[cu_index][attr_name] / len(result), 2)
 
     return render_template('att_marks_report_stud_group.html', stud_group=group, result=result, ball_avg=ball_avg)
 
@@ -730,7 +733,7 @@ def att_marks_report_student(id):
     if s is None:
         return render_error(404)
 
-    result = db.session.query(AttMark).join(CurriculumUnit).join(StudGroup).filter(AttMark.student_id == id).\
+    result = db.session.query(AttMark).join(CurriculumUnit).join(StudGroup).filter(AttMark.student_id == id). \
         order_by(StudGroup.year, StudGroup.semester, AttMark.curriculum_unit_id).all()
 
     return render_template('att_marks_report_student.html', student=s, result=result)
@@ -783,6 +786,104 @@ def admin_user(id):
 
 
 app.register_error_handler(404, lambda code: render_error(404))
+
+
+# stud_attendance
+
+# ToDo - учебные занятия и тип занятия добавить
+#  (думаю определять их по сравнению текущего времени и времени конца и начала пары)
+# ToDo - курс, группу и подгруппу добавить через js к урлу (взять их из студента, который в системе)
+# ToDo - добавить посещаемость (плюсы, минусы), даты посещения или занятия
+# ToDo - думаю надо будет еще разграничить права на страничку посещаемости у различных видов пользователей
+
+# ToDo - курс, номер группы и подгруппы, id студента, ну и семестр наверное тоже
+#  будет браться из авторизанного пользователя
+# ToDo - запихнуть все оставшееся в AJAX-запрос
+
+# ToDo - искать посещаемость по группе студентов (не по одному)
+@app.route("/attendance", methods=['GET', 'POST'])
+def attendance():
+    """Веб-страничка для отображения посещаемости"""
+    if request.method == 'GET':
+        if current_user.role_name != 'Student':
+            group_num = 1
+            group_subnum = 0
+            student_id = 1
+            semester = 1
+            course = 1
+        else:
+            group_num = current_user.num
+            group_subnum = current_user.subnum
+            student_id = current_user.id
+            semester = current_user.semester
+            course = current_user.course
+        groups = db.session.query(StudGroup). \
+            filter(StudGroup.active). \
+            filter(StudGroup.semester == semester). \
+            order_by(StudGroup.year, StudGroup.semester, StudGroup.num,
+                     StudGroup.subnum). \
+            all()  # находим список групп
+        group = db.session.query(StudGroup). \
+            filter(StudGroup.active). \
+            filter(StudGroup.semester == semester). \
+            filter(StudGroup.num == group_num). \
+            filter(StudGroup.subnum == group_subnum). \
+            order_by(StudGroup.year, StudGroup.semester, StudGroup.num,
+                     StudGroup.subnum). \
+            first()  # находим всех студентов по группе и семестру
+        attendance = db.session.query(Attendance). \
+            filter(Attendance.student_id == student_id). \
+            all()  # достаем посещаемость по id студента
+        today = datetime.now()
+
+        date_str = today.strftime('%d.%m.%Y')
+        date_obj = datetime.strptime(date_str, '%d.%m.%Y')
+
+        start_of_week = date_obj - timedelta(days=date_obj.weekday())
+
+        dates = [start_of_week + timedelta(days=i) for i in range(0, 13)]
+        current_and_next_week_dates = dates[0:6] + dates[7:13]
+        current_and_next_week_text_dates = [week_date.strftime('%d.%m.%Y') for week_date in current_and_next_week_dates]
+        return render_template('attendance.html', course=course, groups=groups,
+                               lesson_types=[lesson_type.value for lesson_type in LessonType],
+                               students=group.students,
+                               group_num=group_num,
+                               group_subnum=group_subnum,
+                               week_dates=current_and_next_week_text_dates)
+    course = int(request.values.get('course'))
+    group_num = request.values.get('group_num')
+    group_subnum = request.values.get('group_subnum')
+    student_id = 1
+    semester = 2 * (course - 1)
+    groups = db.session.query(StudGroup). \
+        filter(StudGroup.active). \
+        filter(StudGroup.semester == semester). \
+        order_by(StudGroup.year, StudGroup.semester, StudGroup.num,
+                 StudGroup.subnum). \
+        all()  # находим список групп
+    group = db.session.query(StudGroup). \
+        filter(StudGroup.active). \
+        filter(StudGroup.semester == semester). \
+        filter(StudGroup.num == group_num). \
+        filter(StudGroup.subnum == group_subnum). \
+        order_by(StudGroup.year, StudGroup.semester, StudGroup.num,
+                 StudGroup.subnum). \
+        first()  # находим всех студентов по группе и семестру
+    attendance = db.session.query(Attendance). \
+        filter(Attendance.student_id == student_id). \
+        all()  # достаем посещаемость по id студента
+    today = datetime.now()
+    date_str = today.strftime('%d.%m.%Y')
+    date_obj = datetime.strptime(date_str, '%d.%m.%Y')
+    start_of_week = date_obj - timedelta(days=date_obj.weekday())
+    dates = [start_of_week + timedelta(days=i) for i in range(0, 13)]
+    current_and_next_week_dates = dates[0:6] + dates[7:13]
+    current_and_next_week_text_dates = [week_date.strftime('%d.%m.%Y') for week_date in current_and_next_week_dates]
+    return jsonify(course=course, groups=[group.as_dict() for group in groups],
+                   lesson_types=[lesson_type.value for lesson_type in LessonType],
+                   students=[student.as_dict() for student in group.students],
+                   group_num=group_num, group_subnum=group_subnum,
+                   week_dates=current_and_next_week_text_dates)
 
 
 if __name__ == '__main__':

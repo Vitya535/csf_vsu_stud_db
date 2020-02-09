@@ -1,3 +1,7 @@
+from enum import Enum
+
+from sqlalchemy import Table
+
 from app_config import db
 
 # Типы
@@ -16,6 +20,17 @@ MarkTypeDict = {
     "exam": "Экзамен",
     "test_diff": "Зачёт с оценкой"
 }
+
+# Связующая таблица для единиц учебного плана и учебных занятий
+TEACHING_LESSON_AND_CURRICULUM_UNIT = Table('teaching_lesson_and_curriculum_unit', db.metadata,
+                                            db.Column('teaching_lesson_id', db.Integer,
+                                                      db.ForeignKey('teaching_lesson.teaching_lesson_id',
+                                                                    ondelete="CASCADE",
+                                                                    onupdate="CASCADE")),
+                                            db.Column('curriculum_unit_id', db.Integer,
+                                                      db.ForeignKey('curriculum_unit.curriculum_unit_id',
+                                                                    ondelete="CASCADE",
+                                                                    onupdate="CASCADE")))
 
 
 class Person:
@@ -91,7 +106,7 @@ class StudGroup(db.Model, _ObjectWithSemester, _ObjectWithYear):
 
     active = db.Column('stud_group_active', db.BOOLEAN, nullable=False, default=True)
 
-    students = db.relationship('Student', lazy=True, backref='stud_group',\
+    students = db.relationship('Student', lazy=True, backref='stud_group', \
                                order_by="Student.surname, Student.firstname, Student.middlename")
     curriculum_units = db.relationship('CurriculumUnit', lazy=True, backref='stud_group', order_by="CurriculumUnit.id")
 
@@ -100,6 +115,12 @@ class StudGroup(db.Model, _ObjectWithSemester, _ObjectWithYear):
         if self.num is None or self.subnum is None:
             return None
         return "%d.%d" % (self.num, self.subnum) if self.subnum != 0 else str(self.num)
+
+    def as_dict(self):
+        class_variables = ['id', 'year', 'semester', 'num',
+                           'subnum', 'specialty', 'specialization',
+                           'active']
+        return {var_name: getattr(self, var_name) for var_name in class_variables}
 
 
 class Subject(db.Model):
@@ -220,7 +241,8 @@ class CurriculumUnitUnion(_CurriculumUnit, _ObjectWithSemester, _ObjectWithYear)
         for cu in curriculum_units:
             self.att_marks.extend(cu.att_marks)
         self.att_marks.sort(key=lambda m: (m.student.surname, m.student.firstname, m.student.middlename))
-        self.att_marks_readonly_ids = tuple(m.att_mark_id for m in self.att_marks if m.student.stud_group_id != m.curriculum_unit.stud_group_id)
+        self.att_marks_readonly_ids = tuple(
+            m.att_mark_id for m in self.att_marks if m.student.stud_group_id != m.curriculum_unit.stud_group_id)
 
 
 class Student(db.Model, Person, _ObjectWithSemester):
@@ -248,6 +270,11 @@ class Student(db.Model, Person, _ObjectWithSemester):
     @property
     def role_name(self):
         return 'Student'
+
+    def as_dict(self):
+        class_variables = ['id', 'surname', 'firstname', 'middlename', 'semester', 'alumnus_year', 'expelled_year',
+                           'status', 'login', 'card_number', 'group_leader']
+        return {var_name: getattr(self, var_name) for var_name in class_variables}
 
 
 class AdminUser(db.Model, Person):
@@ -345,3 +372,93 @@ class AttMark(db.Model):
             r["all"] = r["all"] and self.att_mark_exam is not None
 
         return r
+
+
+# for stud_attendance
+
+
+class LessonType(Enum):
+    """Перечисление для типа занятий"""
+    lection = 'Лекция'
+    practice = 'Практика'
+    seminar = 'Семинар'
+
+
+class TeachingLesson(db.Model):
+    """Класс для сущности 'Учебное занятие'"""
+    __tablename__ = 'teaching_lesson'
+
+    teaching_lesson_id = db.Column(db.INTEGER, primary_key=True, autoincrement=True)
+
+    pair_number_numerator = db.Column(db.INTEGER, nullable=False)
+    day_number_numerator = db.Column(db.INTEGER, nullable=False)
+    pair_number_denominator = db.Column(db.INTEGER, nullable=False)
+    day_number_denominator = db.Column(db.INTEGER, nullable=False)
+    can_expose_group_leader = db.Column(db.Boolean, nullable=False)
+
+    lesson_type = db.Column(db.Enum(LessonType), nullable=False)
+
+    curriculum_units = db.relationship(
+        'CurriculumUnit', secondary='teaching_lesson_and_curriculum_unit'
+    )
+
+    def __repr__(self):
+        return f"TeachingLesson(teaching_lesson_id={self.teaching_lesson_id}," \
+               f" pair_number_numerator={self.pair_number_numerator}," \
+               f" day_number_numerator={self.day_number_numerator}," \
+               f" pair_number_denominator={self.pair_number_denominator}," \
+               f" day_number_denominator={self.day_number_denominator}," \
+               f" can_expose_captain={self.can_expose_group_leader}," \
+               f" lesson_type={self.lesson_type})"
+
+
+class Attendance(db.Model):
+    """Класс для сущности 'Посещаемость'"""
+    __tablename__ = 'attendance'
+
+    attendance_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    lesson_attendance = db.Column(db.Boolean, nullable=False, default=False)
+    lesson_date = db.Column(db.Date, nullable=False, primary_key=True)
+    student_id = db.Column(db.BigInteger, db.ForeignKey('student.student_id'), nullable=False, primary_key=True)
+
+    def __repr__(self):
+        return f"Attendance(attendance_teaching_lesson_id={self.attendance_id}," \
+               f" lesson_attendance={self.lesson_attendance}," \
+               f" lesson_date={self.lesson_date}," \
+               f" student_id={self.student_id})"
+
+
+class HalfYearEnum(Enum):
+    """Перечисление для типа занятий"""
+    first_half_year = 1
+    second_half_year = 2
+
+
+class LessonsBeginning(db.Model):
+    """Класс для сущности 'Начало занятий'"""
+    __tablename__ = 'lessons_beginning'
+
+    year = db.Column(db.INTEGER, nullable=False, primary_key=True)
+    half_year = db.Column(db.Enum(HalfYearEnum), nullable=False, primary_key=True)
+    beginning_date = db.Column(db.DATE, nullable=False)
+
+    def __repr__(self):
+        return f"LessonsBeginning(year={self.year}," \
+               f" half_year={self.half_year}," \
+               f" beginning_date={self.beginning_date})"
+
+
+class TeachingPairs(db.Model):
+    """Класс для сущности 'Учебные пары'"""
+    __tablename__ = 'teaching_pairs'
+
+    pair_id = db.Column(db.INTEGER, primary_key=True, autoincrement=True)
+    pair_number = db.Column(db.INTEGER, nullable=False)
+    time_of_beginning = db.Column(db.TIME, nullable=False)
+    time_of_ending = db.Column(db.TIME, nullable=False)
+
+    def __repr__(self):
+        return f"TeachingPairs(pair_id={self.pair_id}," \
+               f" pair_number={self.pair_number}," \
+               f" time_of_beginning={self.time_of_beginning}," \
+               f" time_of_ending={self.time_of_ending})"

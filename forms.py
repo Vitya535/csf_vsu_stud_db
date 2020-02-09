@@ -1,12 +1,15 @@
 from datetime import datetime
 
-from app_config import db
-from model import StudGroup, Subject, Teacher, Student, StudentStates, StudentStateDict, CurriculumUnit, AttMark, MarkTypes, MarkTypeDict, AdminUser
-from wtforms import validators, Form, SubmitField, IntegerField, StringField, SelectField, HiddenField, PasswordField, FormField, BooleanField
+from wtforms import validators, Form, SubmitField, IntegerField, StringField, SelectField, HiddenField, PasswordField, \
+    FormField, BooleanField
 from wtforms.widgets import ListWidget, CheckboxInput
 from wtforms_alchemy import ModelForm, ModelFieldList, QuerySelectMultipleField
 from wtforms_alchemy.fields import QuerySelectField
 from wtforms_alchemy.validators import Unique
+
+from app_config import db
+from model import StudGroup, Subject, Teacher, Student, StudentStates, StudentStateDict, CurriculumUnit, AttMark, \
+    MarkTypes, MarkTypeDict, AdminUser
 
 
 class _PersonForm:
@@ -26,8 +29,8 @@ class _PersonForm:
             validators.Optional(),
             validators.Length(min=3, max=45),
             validators.Regexp("^[a-z0-9_]+$",
-                message="Учётное имя может содержать только латинкие символы, цифры и знак подчёркивания"
-            ),
+                              message="Учётное имя может содержать только латинкие символы, цифры и знак подчёркивания"
+                              ),
             Unique(clazz.login, get_session=lambda: db.session, message='Логин занят')
         ]
 
@@ -42,10 +45,13 @@ class StudGroupForm(ModelForm):
     semester = IntegerField('Семестр', [validators.DataRequired(), validators.NumberRange(min=1, max=10)])
     num = IntegerField('Группа', [validators.DataRequired(), validators.NumberRange(min=1, max=255)])
     subnum = IntegerField('Подгруппа', [validators.NumberRange(min=0, max=3)])
-    specialty = StringField('Направление (специальность)', [validators.Length(min=4, max=StudGroup.specialty.property.columns[0].type.length), validators.DataRequired()])
+    specialty = StringField('Направление (специальность)',
+                            [validators.Length(min=4, max=StudGroup.specialty.property.columns[0].type.length),
+                             validators.DataRequired()])
     specialization = StringField(
         'Профиль',
-        validators=[validators.Length(min=4, max=StudGroup.specialization.property.columns[0].type.length), validators.Optional()],
+        validators=[validators.Length(min=4, max=StudGroup.specialization.property.columns[0].type.length),
+                    validators.Optional()],
         filters=[lambda val: val or None]
     )
 
@@ -58,7 +64,9 @@ class StudentForm(_PersonForm, ModelForm):
         model = Student
         include_primary_keys = True
 
-    id = IntegerField('Номер студенческого билета', [validators.DataRequired(), validators.NumberRange(min=1), Unique(Student.id, get_session=lambda: db.session, message='Номер студенческого билета занят')])
+    id = IntegerField('Номер студенческого билета', [validators.DataRequired(), validators.NumberRange(min=1),
+                                                     Unique(Student.id, get_session=lambda: db.session,
+                                                            message='Номер студенческого билета занят')])
     status = QuerySelectField('Состояние',
                               query_factory=lambda: StudentStates,
                               get_pk=lambda s: s,
@@ -71,10 +79,14 @@ class StudentForm(_PersonForm, ModelForm):
                                   get_pk=lambda g: g.id,
                                   get_label=lambda g: "%d курс группа %s" % (g.course, g.num_print),
                                   blank_text='Не указана', allow_blank=True)
-    alumnus_year = IntegerField('Учебный год выпуск', [validators.NumberRange(min=2000, max=datetime.now().year + 1), validators.Optional()])
-    expelled_year = IntegerField('Учебный год отчисления', [validators.NumberRange(min=2000, max=datetime.now().year + 1), validators.Optional()])
+    alumnus_year = IntegerField('Учебный год выпуск',
+                                [validators.NumberRange(min=2000, max=datetime.now().year + 1), validators.Optional()])
+    expelled_year = IntegerField('Учебный год отчисления',
+                                 [validators.NumberRange(min=2000, max=datetime.now().year + 1), validators.Optional()])
 
-    card_number = IntegerField('Номер карты (пропуска)', [validators.Optional(), validators.NumberRange(min=1), Unique(Student.card_number, get_session=lambda: db.session, message='Номер занят')])
+    card_number = IntegerField('Номер карты (пропуска)', [validators.Optional(), validators.NumberRange(min=1),
+                                                          Unique(Student.card_number, get_session=lambda: db.session,
+                                                                 message='Номер занят')])
     group_leader = BooleanField('Староста')
 
     button_save = SubmitField('Сохранить')
@@ -83,9 +95,13 @@ class StudentForm(_PersonForm, ModelForm):
 
 class StudentSearchForm(Form):
     id = IntegerField('Номер студенческого билета', [validators.NumberRange(min=1), validators.Optional()])
-    surname = StringField('Фамилия', [validators.Length(min=2, max=Student.surname.property.columns[0].type.length), validators.Optional()])
-    firstname = StringField('Имя', [validators.Length(min=2, max=Student.firstname.property.columns[0].type.length), validators.Optional()])
-    middlename = StringField('Отчество', [validators.Length(min=2, max=Student.middlename.property.columns[0].type.length), validators.Optional()])
+    surname = StringField('Фамилия', [validators.Length(min=2, max=Student.surname.property.columns[0].type.length),
+                                      validators.Optional()])
+    firstname = StringField('Имя', [validators.Length(min=2, max=Student.firstname.property.columns[0].type.length),
+                                    validators.Optional()])
+    middlename = StringField('Отчество',
+                             [validators.Length(min=2, max=Student.middlename.property.columns[0].type.length),
+                              validators.Optional()])
     status = QuerySelectField('Состояние',
                               query_factory=lambda: StudentStates,
                               get_pk=lambda s: s,
@@ -129,7 +145,11 @@ class StudentsUnallocatedForm(Form):
 class SubjectForm(ModelForm):
     class Meta:
         model = Subject
-    name = StringField('Название предмета', [validators.DataRequired(), validators.Length(min=3, max=Subject.name.property.columns[0].type.length), Unique(Subject.name, get_session=lambda: db.session, message='Предмет с таким названием существует')])
+
+    name = StringField('Название предмета', [validators.DataRequired(),
+                                             validators.Length(min=3, max=Subject.name.property.columns[0].type.length),
+                                             Unique(Subject.name, get_session=lambda: db.session,
+                                                    message='Предмет с таким названием существует')])
     button_save = SubmitField('Сохранить')
     button_delete = SubmitField('Удалить')
 
@@ -148,9 +168,12 @@ class AttMarkForm(ModelForm):
         model = AttMark
         include_primary_keys = True
 
-    att_mark_1 = IntegerField('Оценка за 1-ю аттестацию', [validators.NumberRange(min=0, max=50), validators.Optional()])
-    att_mark_2 = IntegerField('Оценка за 2-ю аттестацию', [validators.NumberRange(min=0, max=50), validators.Optional()])
-    att_mark_3 = IntegerField('Оценка за 3-ю аттестацию', [validators.NumberRange(min=0, max=50), validators.Optional()])
+    att_mark_1 = IntegerField('Оценка за 1-ю аттестацию',
+                              [validators.NumberRange(min=0, max=50), validators.Optional()])
+    att_mark_2 = IntegerField('Оценка за 2-ю аттестацию',
+                              [validators.NumberRange(min=0, max=50), validators.Optional()])
+    att_mark_3 = IntegerField('Оценка за 3-ю аттестацию',
+                              [validators.NumberRange(min=0, max=50), validators.Optional()])
     att_mark_exam = IntegerField('Оценка за экзамен', [validators.NumberRange(min=0, max=50), validators.Optional()])
     att_mark_append_ball = IntegerField('Доп. балл', [validators.NumberRange(min=0, max=10), validators.Optional()])
     att_mark_id = HiddenField()
@@ -162,17 +185,17 @@ class CurriculumUnitForm(ModelForm):
 
     stud_group = QuerySelectField('Группа',
                                   query_factory=lambda: db.session.query(StudGroup).filter(StudGroup.active).order_by(
-                                    StudGroup.year, StudGroup.semester, StudGroup.num, StudGroup.subnum).all(),
+                                      StudGroup.year, StudGroup.semester, StudGroup.num, StudGroup.subnum).all(),
                                   get_pk=lambda g: g.id,
                                   get_label=lambda g: "%d курс группа %s" % (g.course, g.num_print),
                                   allow_blank=False)
 
     teacher = QuerySelectField('Преподаватель',
-                                  query_factory=lambda: db.session.query(Teacher).order_by(
-                                    Teacher.surname, Teacher.firstname, Teacher.middlename).all(),
-                                  get_pk=lambda t: t.id,
-                                  get_label=lambda t: t.full_name_short,
-                                  blank_text='Не указан', allow_blank=True, validators=[validators.DataRequired()])
+                               query_factory=lambda: db.session.query(Teacher).order_by(
+                                   Teacher.surname, Teacher.firstname, Teacher.middlename).all(),
+                               get_pk=lambda t: t.id,
+                               get_label=lambda t: t.full_name_short,
+                               blank_text='Не указан', allow_blank=True, validators=[validators.DataRequired()])
 
     subject = QuerySelectField('Предмет',
                                query_factory=lambda: db.session.query(Subject).order_by(
@@ -182,7 +205,7 @@ class CurriculumUnitForm(ModelForm):
                                blank_text='Не указан', allow_blank=True, validators=[validators.DataRequired()])
 
     hours_att_1 = IntegerField('Часов на 1-ю аттестацию',
-                                [validators.NumberRange(min=1), validators.DataRequired()])
+                               [validators.NumberRange(min=1), validators.DataRequired()])
     hours_att_2 = IntegerField('Часов на 2-ю аттестацию',
                                [validators.NumberRange(min=1), validators.DataRequired()])
     hours_att_3 = IntegerField('Часов на 3-ю аттестацию',
@@ -217,7 +240,8 @@ class CurriculumUnitCopyForm(Form):
     stud_groups_selected = QuerySelectMultipleField(
         'Группы',
         get_pk=lambda g: g.id,
-        get_label=lambda g: "%s %s%s" % (g.num_print, g.specialty, " (%s)" % g.specialization if g.specialization else ""),
+        get_label=lambda g: "%s %s%s" % (
+        g.num_print, g.specialty, " (%s)" % g.specialization if g.specialization else ""),
         widget=ListWidget(prefix_label=False),
         option_widget=CheckboxInput()
     )
@@ -227,6 +251,7 @@ class CurriculumUnitCopyForm(Form):
 class AdminUserForm(_PersonForm, ModelForm):
     class Meta:
         model = AdminUser
+
     button_save = SubmitField('Сохранить')
     button_delete = SubmitField('Удалить')
 
@@ -234,5 +259,7 @@ class AdminUserForm(_PersonForm, ModelForm):
 class LoginForm(Form):
     login = StringField('Login')
     password = PasswordField('Пароль')
-    user_type = SelectField('Тип пользователя', choices=[('', 'Авто'), ('Student', 'Студент'), ('Teacher', 'Преподаватель'), ('AdminUser', 'Администратор')])
+    user_type = SelectField('Тип пользователя',
+                            choices=[('', 'Авто'), ('Student', 'Студент'), ('Teacher', 'Преподаватель'),
+                                     ('AdminUser', 'Администратор')])
     button_login = SubmitField('Вход')
