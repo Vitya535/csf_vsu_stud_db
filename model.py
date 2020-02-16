@@ -261,6 +261,7 @@ class Student(db.Model, Person, _ObjectWithSemester):
     login = db.Column('student_login', db.String(45), unique=True)
     card_number = db.Column('card_number', db.BIGINT, unique=True)
     group_leader = db.Column('stud_group_leader', db.BOOLEAN, nullable=False, default=False)
+    attendance = db.relationship('Attendance')
 
     @property
     def status_name(self):

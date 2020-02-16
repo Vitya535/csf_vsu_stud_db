@@ -17,8 +17,7 @@ function init() {
             .find('td:eq(' + now_date_index + ')');
     }
     $(tr_with_now_date).css({backgroundColor: 'red'});
-    $(td_on_one_line_with_now_date).css({backgroundColor: 'red'});
-    $(td_on_one_line_with_now_date).css({cursor: 'pointer'});
+    $(td_on_one_line_with_now_date).css({backgroundColor: 'red', cursor: 'pointer'});
 
     $(td_on_one_line_with_now_date).on('click', function () {
         $(previous_clicked_td).css({backgroundColor: 'red'});

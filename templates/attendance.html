@@ -54,10 +54,9 @@
         </div>
         <div class="col p-0">
             <select class="custom-select" style="border-radius: 0;" id="lesson">
-                <option>Язык С++</option>
-                <option>Язык С++</option>
-                <option>Язык С++</option>
-                <option>Язык С++</option>
+                {% for curriculum_unit in curriculum_units %}
+                    <option>{{ curriculum_unit.subject.name }}</option>
+                {% endfor %}
             </select>
         </div>
     </div>
@@ -74,18 +73,13 @@
         {% for student in students %}
             <tr>
                 <td class="align-middle font-weight-bold">{{ student.full_name }}</td>
-                <td class="align-middle h2">+</td>
-                <td class="align-middle h2">+</td>
-                <td class="align-middle h2">-</td>
-                <td class="align-middle h2">+</td>
-                <td class="align-middle h2">+</td>
-                <td class="align-middle h2">-</td>
-                <td class="align-middle h2">+</td>
-                <td class="align-middle h2">+</td>
-                <td class="align-middle h2">-</td>
-                <td class="align-middle h2">+</td>
-                <td class="align-middle h2">+</td>
-                <td class="align-middle h2">-</td>
+                {% for attend in student.attendance %}
+                    {% if attend.lesson_attendance %}
+                        <td class="align-middle h2">+</td>
+                    {% else %}
+                        <td class="align-middle h2">-</td>
+                    {% endif %}
+                {% endfor %}
             </tr>
         {% endfor %}
         </tbody>

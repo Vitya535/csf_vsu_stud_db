@@ -792,15 +792,14 @@ app.register_error_handler(404, lambda code: render_error(404))
 
 # ToDo - учебные занятия и тип занятия добавить
 #  (думаю определять их по сравнению текущего времени и времени конца и начала пары)
-# ToDo - курс, группу и подгруппу добавить через js к урлу (взять их из студента, который в системе)
 # ToDo - добавить посещаемость (плюсы, минусы), даты посещения или занятия
 # ToDo - думаю надо будет еще разграничить права на страничку посещаемости у различных видов пользователей
 
-# ToDo - курс, номер группы и подгруппы, id студента, ну и семестр наверное тоже
-#  будет браться из авторизанного пользователя
-# ToDo - запихнуть все оставшееся в AJAX-запрос
+# ToDo - запихнуть все оставшееся в AJAX-запрос (посещаемость)
 
 # ToDo - искать посещаемость по группе студентов (не по одному)
+
+# ToDo - поправить вз-е с БД в посещаемости в целом (долго обьяснять что именно)
 @app.route("/attendance", methods=['GET', 'POST'])
 def attendance():
     """Веб-страничка для отображения посещаемости"""
@@ -808,13 +807,11 @@ def attendance():
         if current_user.role_name != 'Student':
             group_num = 1
             group_subnum = 0
-            student_id = 1
             semester = 1
             course = 1
         else:
             group_num = current_user.num
             group_subnum = current_user.subnum
-            student_id = current_user.id
             semester = current_user.semester
             course = current_user.course
         groups = db.session.query(StudGroup). \
@@ -831,9 +828,8 @@ def attendance():
             order_by(StudGroup.year, StudGroup.semester, StudGroup.num,
                      StudGroup.subnum). \
             first()  # находим всех студентов по группе и семестру
-        attendance = db.session.query(Attendance). \
-            filter(Attendance.student_id == student_id). \
-            all()  # достаем посещаемость по id студента
+        curriculum_units = db.session.query(CurriculumUnit). \
+            filter(CurriculumUnit.stud_group_id == group.id)
         today = datetime.now()
 
         date_str = today.strftime('%d.%m.%Y')
@@ -847,13 +843,13 @@ def attendance():
         return render_template('attendance.html', course=course, groups=groups,
                                lesson_types=[lesson_type.value for lesson_type in LessonType],
                                students=group.students,
+                               curriculum_units=curriculum_units,
                                group_num=group_num,
                                group_subnum=group_subnum,
                                week_dates=current_and_next_week_text_dates)
     course = int(request.values.get('course'))
     group_num = request.values.get('group_num')
     group_subnum = request.values.get('group_subnum')
-    student_id = 1
     semester = 2 * (course - 1)
     groups = db.session.query(StudGroup). \
         filter(StudGroup.active). \
@@ -869,9 +865,6 @@ def attendance():
         order_by(StudGroup.year, StudGroup.semester, StudGroup.num,
                  StudGroup.subnum). \
         first()  # находим всех студентов по группе и семестру
-    attendance = db.session.query(Attendance). \
-        filter(Attendance.student_id == student_id). \
-        all()  # достаем посещаемость по id студента
     today = datetime.now()
     date_str = today.strftime('%d.%m.%Y')
     date_obj = datetime.strptime(date_str, '%d.%m.%Y')
