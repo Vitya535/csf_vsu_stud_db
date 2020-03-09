@@ -261,5 +261,5 @@ class LoginForm(Form):
     password = PasswordField('Пароль')
     user_type = SelectField('Тип пользователя',
                             choices=[('', 'Авто'), ('Student', 'Студент'), ('Teacher', 'Преподаватель'),
-                                     ('AdminUser', 'Администратор')])
+                                     ('AdminUser', 'Администратор'), ('GroupLeader', 'Староста')])
     button_login = SubmitField('Вход')

@@ -86,11 +86,19 @@ function init() {
                 }
             });
             $.each(data.lesson_types, function (index, lesson_type) {
-                $('#lesson_type').append('<option>' + lesson_type);
+                if (lesson_type === data.selected_lesson_type) {
+                    $('#lesson_type').append('<option selected>' + lesson_type);
+                } else {
+                    $('#lesson_type').append('<option>' + lesson_type);
+                }
             });
-            for (let j = 0; j < 4; j++) {
-                $('#lesson').append('<option>Язык С++');
-            }
+            $.each(data.subjects, function (index, subject) {
+                if (subject.name === selected_subject) {
+                    $('#lesson').append('<option selected>' + subject.name);
+                } else {
+                    $('#lesson').append('<option>' + subject.name);
+                }
+            });
             let table_header = $(table)
                 .children('thead')
                 .children('tr:first');
@@ -104,9 +112,13 @@ function init() {
                 let tr = $(tbody).children('tr:last');
                 $(tr).append('<td class="align-middle font-weight-bold">' +
                     student.surname + " " + student.firstname + " " + student.middlename);
-                for (let h = 0; h < 12; h++) {
-                    $(tr).append('<td class="align-middle h2">+');
-                }
+                $.each(student.attendance, function (index, attend) {
+                    if (attend.lesson_attendance) {
+                        $(tr).append('<td class="align-middle h2">+');
+                    } else {
+                        $(tr).append('<td class="align-middle h2">-');
+                    }
+                });
             });
         });
     });
@@ -117,5 +129,5 @@ $(document).ready(function () {
 });
 
 $(document).ajaxComplete(function () {
-   init();
+    init();
 });

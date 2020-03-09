@@ -53,7 +53,8 @@ class Person:
         class_map = {
             "AdminUser": AdminUser,
             "Teacher": Teacher,
-            "Student": Student
+            "Student": Student,
+            "GroupLeader": Student
         }
         return class_map
 
@@ -106,9 +107,21 @@ class StudGroup(db.Model, _ObjectWithSemester, _ObjectWithYear):
 
     active = db.Column('stud_group_active', db.BOOLEAN, nullable=False, default=True)
 
-    students = db.relationship('Student', lazy=True, backref='stud_group', \
+    students = db.relationship('Student', lazy=True, backref='stud_group',
                                order_by="Student.surname, Student.firstname, Student.middlename")
     curriculum_units = db.relationship('CurriculumUnit', lazy=True, backref='stud_group', order_by="CurriculumUnit.id")
+
+    def __repr__(self):
+        return f"StudGroup(id={self.id}, " \
+               f"year={self.year}, " \
+               f"semester={self.semester}, " \
+               f"num={self.num}, " \
+               f"subnum={self.subnum}, " \
+               f"specialty={self.specialty}, " \
+               f"specialization={self.specialization}, " \
+               f"active={self.active}, " \
+               f"students={self.students}, " \
+               f"curriculum_units={self.curriculum_units})"
 
     @property
     def num_print(self):
@@ -129,6 +142,14 @@ class Subject(db.Model):
     id = db.Column('subject_id', db.INTEGER, primary_key=True, autoincrement=True)
     name = db.Column('subject_name', db.String(64), nullable=False, unique=True)
 
+    def __repr__(self):
+        return f"Subject(id={self.id}, " \
+               f"name={self.name})"
+
+    def as_dict(self):
+        class_variables = ['id', 'name']
+        return {var_name: getattr(self, var_name) for var_name in class_variables}
+
 
 class Teacher(db.Model, Person):
     __tablename__ = 'teacher'
@@ -139,6 +160,14 @@ class Teacher(db.Model, Person):
     middlename = db.Column('teacher_middlename', db.String(45))
     rank = db.Column('teacher_rank', db.String(45), nullable=False)
     login = db.Column('teacher_login', db.String(45), nullable=False, unique=True)
+
+    def __repr__(self):
+        return f"Teacher(id={self.id}, " \
+               f"surname={self.surname}, " \
+               f"firstname={self.firstname}, " \
+               f"middlename={self.middlename}, " \
+               f"rank={self.rank}, " \
+               f"login={self.login})"
 
     @property
     def role_name(self):
@@ -186,6 +215,25 @@ class CurriculumUnit(db.Model, _CurriculumUnit):
     subject = db.relationship('Subject')
     teacher = db.relationship('Teacher')
     att_marks = db.relationship('AttMark', lazy=True, backref='curriculum_unit')
+    teaching_lessons = db.relationship('TeachingLesson', secondary='teaching_lesson_and_curriculum_unit')
+
+    def as_dict(self):
+        class_variables = ['subject']
+        return {var_name: getattr(self, var_name) for var_name in class_variables}
+
+    def __repr__(self):
+        return f"CurriculumUnit(id={self.id}, " \
+               f"subject_id={self.subject_id}, " \
+               f"stud_group_id={self.stud_group_id}, " \
+               f"teacher_id={self.teacher_id}, " \
+               f"mark_type={self.mark_type}, " \
+               f"hours_att_1={self.hours_att_1}, " \
+               f"hours_att_2={self.hours_att_2}, " \
+               f"hours_att_3={self.hours_att_3}, " \
+               f"subject={self.subject}, " \
+               f"teacher={self.teacher}, " \
+               f"att_marks={self.att_marks}, " \
+               f"teaching_lessons={self.teaching_lessons})"
 
 
 class CurriculumUnitUnionException(Exception):
@@ -263,6 +311,21 @@ class Student(db.Model, Person, _ObjectWithSemester):
     group_leader = db.Column('stud_group_leader', db.BOOLEAN, nullable=False, default=False)
     attendance = db.relationship('Attendance')
 
+    def __repr__(self):
+        return f"Student(id={self.id}, " \
+               f"surname={self.surname}, " \
+               f"firstname={self.firstname}, " \
+               f"middlename={self.middlename}, " \
+               f"stud_group_id={self.stud_group_id}, " \
+               f"semester={self.semester}, " \
+               f"alumnus_year={self.alumnus_year}, " \
+               f"expelled_year={self.expelled_year}, " \
+               f"status={self.status}, " \
+               f"login={self.login}, " \
+               f"card_number={self.card_number}, " \
+               f"group_leader={self.group_leader}, " \
+               f"attendance={self.attendance})"
+
     @property
     def status_name(self):
         if self.status and self.status in StudentStateDict:
@@ -270,7 +333,10 @@ class Student(db.Model, Person, _ObjectWithSemester):
 
     @property
     def role_name(self):
-        return 'Student'
+        if not self.group_leader:
+            return 'Student'
+        else:
+            return 'GroupLeader'
 
     def as_dict(self):
         class_variables = ['id', 'surname', 'firstname', 'middlename', 'semester', 'alumnus_year', 'expelled_year',
@@ -284,6 +350,13 @@ class AdminUser(db.Model, Person):
     firstname = db.Column('admin_user_firstname', db.String(45), nullable=False)
     middlename = db.Column('admin_user_middlename', db.String(45))
     login = db.Column('admin_user_login', db.String(45), nullable=False, unique=True)
+
+    def __repr__(self):
+        return f"AdminUser(id={self.id}, " \
+               f"surname={self.surname}, " \
+               f"firstname={self.firstname}, " \
+               f"middlename={self.middlename}, " \
+               f"login={self.login})"
 
     @property
     def role_name(self):
@@ -326,6 +399,17 @@ class AttMark(db.Model):
     att_mark_append_ball = db.Column(db.SMALLINT)
     student = db.relationship('Student')
 
+    def __repr__(self):
+        return f"AttMark(att_mark_id={self.att_mark_id}, " \
+               f"curriculum_unit_id={self.curriculum_unit_id}, " \
+               f"student_id={self.student_id}, " \
+               f"att_mark_1={self.att_mark_1}, " \
+               f"att_mark_2={self.att_mark_2}, " \
+               f"att_mark_3={self.att_mark_3}, " \
+               f"att_mark_exam={self.att_mark_exam}, " \
+               f"att_mark_append_ball={self.att_mark_append_ball}, " \
+               f"student={self.student})"
+
     @property
     def result_print(self):
         att_marks = (self.att_mark_1, self.att_mark_2, self.att_mark_3)
@@ -366,8 +450,8 @@ class AttMark(db.Model):
     def fill_data(self):
         r = {"att_1": self.att_mark_1 is not None, "att_2": False, "att_3": False, "all": False}
 
-        r["att_2"] = r["att_1"] and self.att_mark_2 is not None;
-        r["all"] = r["att_3"] = r["att_2"] and self.att_mark_3 is not None;
+        r["att_2"] = r["att_1"] and self.att_mark_2 is not None
+        r["all"] = r["att_3"] = r["att_2"] and self.att_mark_3 is not None
 
         if self.curriculum_unit.mark_type == "exam":
             r["all"] = r["all"] and self.att_mark_exam is not None
@@ -429,10 +513,10 @@ class Attendance(db.Model):
                f" student_id={self.student_id})"
 
 
-class HalfYearEnum(Enum):
-    """Перечисление для типа занятий"""
-    first_half_year = 1
-    second_half_year = 2
+# class HalfYearEnum(Enum):
+#     """Перечисление для типа занятий"""
+#     first_half_year = 1
+#     second_half_year = 2
 
 
 class LessonsBeginning(db.Model):
@@ -440,13 +524,15 @@ class LessonsBeginning(db.Model):
     __tablename__ = 'lessons_beginning'
 
     year = db.Column(db.INTEGER, nullable=False, primary_key=True)
-    half_year = db.Column(db.Enum(HalfYearEnum), nullable=False, primary_key=True)
+    half_year = db.Column(db.INTEGER, nullable=False, primary_key=True)
     beginning_date = db.Column(db.DATE, nullable=False)
+    end_date = db.Column(db.DATE, nullable=False)
 
     def __repr__(self):
         return f"LessonsBeginning(year={self.year}," \
                f" half_year={self.half_year}," \
-               f" beginning_date={self.beginning_date})"
+               f" beginning_date={self.beginning_date}," \
+               f" end_date={self.end_date})"
 
 
 class TeachingPairs(db.Model):

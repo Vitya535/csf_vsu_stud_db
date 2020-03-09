@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from flask import request, render_template, redirect, url_for, send_from_directory, jsonify
 from flask_login import LoginManager, login_required, login_user, logout_user, current_user
@@ -10,8 +10,14 @@ from forms import StudGroupForm, StudentForm, StudentSearchForm, SubjectForm, Te
     CurriculumUnitCopyForm, CurriculumUnitUnionForm, CurriculumUnitAddAppendStudGroupForm, AdminUserForm, LoginForm
 from forms import StudentsUnallocatedForm
 from model import StudGroup, Subject, Teacher, Student, CurriculumUnit, CurriculumUnitUnion, AttMark, AdminUser, Person, \
-    Attendance, LessonType
+    LessonType
+from orm_db_actions import get_all_groups_by_semester
+from orm_db_actions import get_current_half_year
+from orm_db_actions import get_curriculum_units_by_group_id_and_lesson_type
+from orm_db_actions import get_group_by_semester_and_group_number
+from orm_db_actions import get_group_of_current_user_by_id
 from password_checker import password_checker
+from utils import get_current_and_next_week_text_dates
 
 # flask-login
 login_manager = LoginManager()
@@ -790,93 +796,61 @@ app.register_error_handler(404, lambda code: render_error(404))
 
 # stud_attendance
 
-# ToDo - учебные занятия и тип занятия добавить
-#  (думаю определять их по сравнению текущего времени и времени конца и начала пары)
-# ToDo - добавить посещаемость (плюсы, минусы), даты посещения или занятия
-# ToDo - думаю надо будет еще разграничить права на страничку посещаемости у различных видов пользователей
-
-# ToDo - запихнуть все оставшееся в AJAX-запрос (посещаемость)
-
-# ToDo - искать посещаемость по группе студентов (не по одному)
-
-# ToDo - поправить вз-е с БД в посещаемости в целом (долго обьяснять что именно)
 @app.route("/attendance", methods=['GET', 'POST'])
 def attendance():
     """Веб-страничка для отображения посещаемости"""
+    print(current_user)
+    print(current_user.role_name)
+    if current_user.role_name != 'Student' and current_user.role_name != 'GroupLeader':
+        group_num = int(request.values.get('group_num', 1))
+        group_subnum = request.values.get('group_subnum', 0)
+        course = int(request.values.get('course', 1))
+    else:
+        current_user_group = get_group_of_current_user_by_id(current_user.stud_group_id)
+        print(current_user_group.num)
+        print(current_user_group.subnum)
+        group_num = int(request.values.get('group_num', current_user_group.num))
+        group_subnum = request.values.get('group_subnum', current_user_group.subnum)
+        course = int(request.values.get('course', current_user.course))
+        print(group_num)
+        print(group_subnum)
+        print(course)
+    selected_lesson_type = request.values.get('lesson_type')
+    selected_subject = request.values.get('lesson')
+
+    # current_year = datetime.now().year
+    current_year = 2018
+    current_half_year = get_current_half_year(current_year)
+
+    semester = 2 * (course - 1) + current_half_year
+
+    groups = get_all_groups_by_semester(semester)
+    group = get_group_by_semester_and_group_number(semester, group_num, group_subnum)
+    curriculum_units = get_curriculum_units_by_group_id_and_lesson_type(group.id, selected_lesson_type)
+    print(len(group.students))
+    print(curriculum_units)
+
+    current_and_next_week_text_dates = get_current_and_next_week_text_dates()
+
     if request.method == 'GET':
-        if current_user.role_name != 'Student':
-            group_num = 1
-            group_subnum = 0
-            semester = 1
-            course = 1
-        else:
-            group_num = current_user.num
-            group_subnum = current_user.subnum
-            semester = current_user.semester
-            course = current_user.course
-        groups = db.session.query(StudGroup). \
-            filter(StudGroup.active). \
-            filter(StudGroup.semester == semester). \
-            order_by(StudGroup.year, StudGroup.semester, StudGroup.num,
-                     StudGroup.subnum). \
-            all()  # находим список групп
-        group = db.session.query(StudGroup). \
-            filter(StudGroup.active). \
-            filter(StudGroup.semester == semester). \
-            filter(StudGroup.num == group_num). \
-            filter(StudGroup.subnum == group_subnum). \
-            order_by(StudGroup.year, StudGroup.semester, StudGroup.num,
-                     StudGroup.subnum). \
-            first()  # находим всех студентов по группе и семестру
-        curriculum_units = db.session.query(CurriculumUnit). \
-            filter(CurriculumUnit.stud_group_id == group.id)
-        today = datetime.now()
-
-        date_str = today.strftime('%d.%m.%Y')
-        date_obj = datetime.strptime(date_str, '%d.%m.%Y')
-
-        start_of_week = date_obj - timedelta(days=date_obj.weekday())
-
-        dates = [start_of_week + timedelta(days=i) for i in range(0, 13)]
-        current_and_next_week_dates = dates[0:6] + dates[7:13]
-        current_and_next_week_text_dates = [week_date.strftime('%d.%m.%Y') for week_date in current_and_next_week_dates]
         return render_template('attendance.html', course=course, groups=groups,
                                lesson_types=[lesson_type.value for lesson_type in LessonType],
+                               selected_lesson_type=selected_lesson_type,
+                               selected_subject=selected_subject,
                                students=group.students,
                                curriculum_units=curriculum_units,
                                group_num=group_num,
                                group_subnum=group_subnum,
                                week_dates=current_and_next_week_text_dates)
-    course = int(request.values.get('course'))
-    group_num = request.values.get('group_num')
-    group_subnum = request.values.get('group_subnum')
-    semester = 2 * (course - 1)
-    groups = db.session.query(StudGroup). \
-        filter(StudGroup.active). \
-        filter(StudGroup.semester == semester). \
-        order_by(StudGroup.year, StudGroup.semester, StudGroup.num,
-                 StudGroup.subnum). \
-        all()  # находим список групп
-    group = db.session.query(StudGroup). \
-        filter(StudGroup.active). \
-        filter(StudGroup.semester == semester). \
-        filter(StudGroup.num == group_num). \
-        filter(StudGroup.subnum == group_subnum). \
-        order_by(StudGroup.year, StudGroup.semester, StudGroup.num,
-                 StudGroup.subnum). \
-        first()  # находим всех студентов по группе и семестру
-    today = datetime.now()
-    date_str = today.strftime('%d.%m.%Y')
-    date_obj = datetime.strptime(date_str, '%d.%m.%Y')
-    start_of_week = date_obj - timedelta(days=date_obj.weekday())
-    dates = [start_of_week + timedelta(days=i) for i in range(0, 13)]
-    current_and_next_week_dates = dates[0:6] + dates[7:13]
-    current_and_next_week_text_dates = [week_date.strftime('%d.%m.%Y') for week_date in current_and_next_week_dates]
-    return jsonify(course=course, groups=[group.as_dict() for group in groups],
-                   lesson_types=[lesson_type.value for lesson_type in LessonType],
-                   students=[student.as_dict() for student in group.students],
-                   group_num=group_num, group_subnum=group_subnum,
-                   week_dates=current_and_next_week_text_dates)
+    else:
+        return jsonify(course=course, groups=[group.as_dict() for group in groups],
+                       lesson_types=[lesson_type.value for lesson_type in LessonType],
+                       selected_lesson_type=selected_lesson_type,
+                       selected_subject=selected_subject,
+                       students=[stud.as_dict() for stud in group.students],
+                       subjects=[unit.subject.as_dict() for unit in curriculum_units],
+                       group_num=group_num, group_subnum=group_subnum,
+                       week_dates=current_and_next_week_text_dates)
 
 
 if __name__ == '__main__':
