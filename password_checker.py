@@ -9,6 +9,8 @@ def password_checker(login, password):
         return True
     if (login, password) == ('ivanov_i_i', 'ivanov_i_i'):
         return True
-    if (login, password) == ('kushnerenko_v_k', 'dffgrtrw43'):
+    if (login, password) == ('kushnerenko_v_k', 'kushnerenko_v_k'):
+        return True
+    if (login, password) == ('chekmarew', 'chekmarew'):
         return True
     return False

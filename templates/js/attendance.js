@@ -33,10 +33,10 @@ function init() {
         }
     }
 
-    {% if current_user.role_name != 'Student' %}
+    {% if current_user.role_name in ('GroupLeader') %}
         $(td_on_one_line_with_now_date).on('dblclick', markAttendStudent);
-    {% else %}
-        $(table).find('td:eq(' + now_date_index + ')').on('dblclick', markAttendStudent);
+    {% elif current_user.role_name in ('Teacher', 'AdminUser') %}
+        $(table).find('td').on('dblclick', markAttendStudent);
     {% endif %}
 
     $('select.custom-select').on('change', function () {
@@ -77,18 +77,17 @@ function init() {
                 }
             }
             $.each(data.groups, function (index, group) {
-                console.log(data.groups);
-                if (group.stud_group_num === data.group_num && group.stud_group_subnum === data.group_subnum) {
-                    if (group.stud_group_subnum === 0) {
-                        $('#group').append('<option selected>' + group.stud_group_num + ' группа');
+                if (group.num === data.group_num && group.subnum === data.group_subnum) {
+                    if (group.subnum === 0) {
+                        $('#group').append('<option selected>' + group.num + ' группа');
                     } else {
-                        $('#group').append('<option selected>' + group.stud_group_num + '.' + group.stud_group_subnum + ' группа');
+                        $('#group').append('<option selected>' + group.num + '.' + group.subnum + ' группа');
                     }
                 } else {
-                    if (group.stud_group_subnum === 0) {
-                        $('#group').append('<option>' + group.stud_group_num + ' группа');
+                    if (group.subnum === 0) {
+                        $('#group').append('<option>' + group.num + ' группа');
                     } else {
-                        $('#group').append('<option>' + group.stud_group_num + '.' + group.stud_group_subnum + ' группа');
+                        $('#group').append('<option>' + group.num + '.' + group.subnum + ' группа');
                     }
                 }
             });
@@ -118,7 +117,7 @@ function init() {
                 $(tbody).append('<tr>');
                 let tr = $(tbody).children('tr:last');
                 $(tr).append('<td class="align-middle font-weight-bold">' +
-                    student.student_surname + " " + student.student_firstname + " " + student.student_middlename);
+                    student.surname + " " + student.firstname + " " + student.middlename);
                 $.each(student.attendance, function (index, attend) {
                     if (attend.lesson_attendance) {
                         $(tr).append('<td class="align-middle h2">+');

@@ -43,8 +43,6 @@ def get_curriculum_units_by_group_id_and_lesson_type(group_id: int, lesson_type:
         for teaching_lesson in unit.teaching_lessons:
             if teaching_lesson.lesson_type.value == lesson_type:
                 curriculum_units_with_checked_teaching_lessons.append(unit)
-    print(curriculum_units)
-    print(curriculum_units_with_checked_teaching_lessons)
     return curriculum_units_with_checked_teaching_lessons
 
 

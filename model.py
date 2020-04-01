@@ -1,6 +1,7 @@
 from enum import Enum
 
-from sqlalchemy import Table
+from flask import json
+from sqlalchemy.orm.attributes import QueryableAttribute
 
 from app_config import db
 
@@ -22,15 +23,131 @@ MarkTypeDict = {
 }
 
 # Связующая таблица для единиц учебного плана и учебных занятий
-TEACHING_LESSON_AND_CURRICULUM_UNIT = Table('teaching_lesson_and_curriculum_unit', db.metadata,
-                                            db.Column('teaching_lesson_id', db.Integer,
-                                                      db.ForeignKey('teaching_lesson.teaching_lesson_id',
-                                                                    ondelete="CASCADE",
-                                                                    onupdate="CASCADE")),
-                                            db.Column('curriculum_unit_id', db.Integer,
-                                                      db.ForeignKey('curriculum_unit.curriculum_unit_id',
-                                                                    ondelete="CASCADE",
-                                                                    onupdate="CASCADE")))
+TEACHING_LESSON_AND_CURRICULUM_UNIT = db.Table('teaching_lesson_and_curriculum_unit', db.metadata,
+                                               db.Column('teaching_lesson_id', db.Integer,
+                                                         db.ForeignKey('teaching_lesson.teaching_lesson_id',
+                                                                       ondelete="CASCADE",
+                                                                       onupdate="CASCADE")),
+                                               db.Column('curriculum_unit_id', db.Integer,
+                                                         db.ForeignKey('curriculum_unit.curriculum_unit_id',
+                                                                       ondelete="CASCADE",
+                                                                       onupdate="CASCADE")))
+
+
+class BaseModel(db.Model):
+    __abstract__ = True
+
+    def to_dict(self, show=None, _hide=None, _path=None):
+        """Return a dictionary representation of this model."""
+
+        if _hide is None:
+            _hide = []
+        show = show or []
+
+        hidden = self._hidden_fields if hasattr(self, "_hidden_fields") else []
+        default = self._default_fields if hasattr(self, "_default_fields") else []
+        default.extend(['id', 'modified_at', 'created_at'])
+
+        if not _path:
+            _path = self.__tablename__.lower()
+
+            def prepend_path(item):
+                item = item.lower()
+                if item.split(".", 1)[0] == _path:
+                    return item
+                if len(item) == 0:
+                    return item
+                if item[0] != ".":
+                    item = ".%s" % item
+                item = "%s%s" % (_path, item)
+                return item
+
+            _hide[:] = [prepend_path(x) for x in _hide]
+            show[:] = [prepend_path(x) for x in show]
+
+        columns = self.__table__.columns.keys()
+        relationships = self.__mapper__.relationships.keys()
+        properties = dir(self)
+
+        ret_data = {}
+
+        for key in columns:
+            if key.startswith("_"):
+                continue
+            check = "%s.%s" % (_path, key)
+            if check in _hide or key in hidden:
+                continue
+            if check in show or key in default:
+                ret_data[key] = getattr(self, key)
+
+        for key in relationships:
+            if key.startswith("_"):
+                continue
+            check = "%s.%s" % (_path, key)
+            if check in _hide or key in hidden:
+                continue
+            if check in show or key in default:
+                _hide.append(check)
+                is_list = self.__mapper__.relationships[key].uselist
+                if is_list:
+                    items = getattr(self, key)
+                    if self.__mapper__.relationships[key].query_class is not None:
+                        if hasattr(items, "all"):
+                            items = items.all()
+                    ret_data[key] = []
+                    for item in items:
+                        ret_data[key].append(
+                            item.to_dict(
+                                show=list(show),
+                                _hide=list(_hide),
+                                _path=("%s.%s" % (_path, key.lower())),
+                            )
+                        )
+                else:
+                    if (
+                            self.__mapper__.relationships[key].query_class is not None
+                            or self.__mapper__.relationships[key].instrument_class
+                            is not None
+                    ):
+                        item = getattr(self, key)
+                        if item is not None:
+                            ret_data[key] = item.to_dict(
+                                show=list(show),
+                                _hide=list(_hide),
+                                _path=("%s.%s" % (_path, key.lower())),
+                            )
+                        else:
+                            ret_data[key] = None
+                    else:
+                        ret_data[key] = getattr(self, key)
+
+        for key in list(set(properties) - set(columns) - set(relationships)):
+            if key.startswith("_"):
+                continue
+            if not hasattr(self.__class__, key):
+                continue
+            attr = getattr(self.__class__, key)
+            if not (isinstance(attr, property) or isinstance(attr, QueryableAttribute)):
+                continue
+            check = "%s.%s" % (_path, key)
+            if check in _hide or key in hidden:
+                continue
+            if check in show or key in default:
+                val = getattr(self, key)
+                if hasattr(val, "to_dict"):
+                    ret_data[key] = val.to_dict(
+                        show=list(show),
+                        _hide=list(_hide),
+                        _path=("%s.%s" % (_path, key.lower()))
+                        # _path = ('%s.%s' % (path, key.lower())),
+                    )
+                else:
+                    try:
+                        ret_data[key] = json.loads(json.dumps(val))
+                    except:
+                        pass
+
+        return ret_data
 
 
 class Person:
@@ -91,11 +208,16 @@ class _ObjectWithYear:
         return "%d-%d" % (self.year, self.year + 1)
 
 
-class StudGroup(db.Model, _ObjectWithSemester, _ObjectWithYear):
+class StudGroup(BaseModel, _ObjectWithSemester, _ObjectWithYear):
     __tablename__ = 'stud_group'
     __table_args__ = (
         db.UniqueConstraint('stud_group_year', 'stud_group_semester', 'stud_group_num', 'stud_group_subnum'),
     )
+
+    _default_fields = [
+        'num',
+        'subnum'
+    ]
 
     id = db.Column('stud_group_id', db.INTEGER, primary_key=True, autoincrement=True)
     year = db.Column('stud_group_year', db.SMALLINT, nullable=False)
@@ -109,7 +231,8 @@ class StudGroup(db.Model, _ObjectWithSemester, _ObjectWithYear):
 
     students = db.relationship('Student', lazy=True, backref='stud_group',
                                order_by="Student.surname, Student.firstname, Student.middlename")
-    curriculum_units = db.relationship('CurriculumUnit', lazy=True, backref='stud_group', order_by="CurriculumUnit.id")
+    curriculum_units = db.relationship('CurriculumUnit', lazy=True, backref='curriculum_unit',
+                                       order_by="CurriculumUnit.id")
 
     def __repr__(self):
         return f"StudGroup(id={self.id}, " \
@@ -129,15 +252,13 @@ class StudGroup(db.Model, _ObjectWithSemester, _ObjectWithYear):
             return None
         return "%d.%d" % (self.num, self.subnum) if self.subnum != 0 else str(self.num)
 
-    def as_dict(self):
-        class_variables = ['id', 'year', 'semester', 'num',
-                           'subnum', 'specialty', 'specialization',
-                           'active']
-        return {var_name: getattr(self, var_name) for var_name in class_variables}
 
-
-class Subject(db.Model):
+class Subject(BaseModel):
     __tablename__ = 'subject'
+
+    _default_fields = [
+        'name'
+    ]
 
     id = db.Column('subject_id', db.INTEGER, primary_key=True, autoincrement=True)
     name = db.Column('subject_name', db.String(64), nullable=False, unique=True)
@@ -145,10 +266,6 @@ class Subject(db.Model):
     def __repr__(self):
         return f"Subject(id={self.id}, " \
                f"name={self.name})"
-
-    def as_dict(self):
-        class_variables = ['id', 'name']
-        return {var_name: getattr(self, var_name) for var_name in class_variables}
 
 
 class Teacher(db.Model, Person):
@@ -198,6 +315,7 @@ class _CurriculumUnit:
 
 
 class CurriculumUnit(db.Model, _CurriculumUnit):
+    RELATIONSHIPS_TO_DICT = True
     __tablename__ = 'curriculum_unit'
     __table_args__ = (
         db.UniqueConstraint('subject_id', 'stud_group_id'),
@@ -216,10 +334,6 @@ class CurriculumUnit(db.Model, _CurriculumUnit):
     teacher = db.relationship('Teacher')
     att_marks = db.relationship('AttMark', lazy=True, backref='curriculum_unit')
     teaching_lessons = db.relationship('TeachingLesson', secondary='teaching_lesson_and_curriculum_unit')
-
-    def as_dict(self):
-        class_variables = ['subject']
-        return {var_name: getattr(self, var_name) for var_name in class_variables}
 
     def __repr__(self):
         return f"CurriculumUnit(id={self.id}, " \
@@ -293,8 +407,15 @@ class CurriculumUnitUnion(_CurriculumUnit, _ObjectWithSemester, _ObjectWithYear)
             m.att_mark_id for m in self.att_marks if m.student.stud_group_id != m.curriculum_unit.stud_group_id)
 
 
-class Student(db.Model, Person, _ObjectWithSemester):
+class Student(BaseModel, Person, _ObjectWithSemester):
     __tablename__ = 'student'
+
+    _default_fields = [
+        'surname',
+        'middlename',
+        'firstname',
+        'attendance'
+    ]
 
     id = db.Column('student_id', db.BIGINT, primary_key=True)
     surname = db.Column('student_surname', db.String(45), nullable=False)
@@ -337,11 +458,6 @@ class Student(db.Model, Person, _ObjectWithSemester):
             return 'Student'
         else:
             return 'GroupLeader'
-
-    def as_dict(self):
-        class_variables = ['id', 'surname', 'firstname', 'middlename', 'semester', 'alumnus_year', 'expelled_year',
-                           'status', 'login', 'card_number', 'group_leader']
-        return {var_name: getattr(self, var_name) for var_name in class_variables}
 
 
 class AdminUser(db.Model, Person):
@@ -497,9 +613,13 @@ class TeachingLesson(db.Model):
                f" lesson_type={self.lesson_type})"
 
 
-class Attendance(db.Model):
+class Attendance(BaseModel):
     """Класс для сущности 'Посещаемость'"""
     __tablename__ = 'attendance'
+
+    _default_fields = [
+        'lesson_attendance'
+    ]
 
     attendance_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     lesson_attendance = db.Column(db.Boolean, nullable=False, default=False)
