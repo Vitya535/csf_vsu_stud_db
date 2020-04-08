@@ -799,20 +799,23 @@ app.register_error_handler(404, lambda code: render_error(404))
 @app.route("/attendance", methods=['GET', 'POST'])
 def attendance():
     """Веб-страничка для отображения посещаемости"""
+
     if current_user.role_name != 'Student' and current_user.role_name != 'GroupLeader':
         group_num = int(request.values.get('group_num', 1))
         group_subnum = int(request.values.get('group_subnum', 0))
         course = int(request.values.get('course', 1))
     else:
-        current_user_group = get_group_of_current_user_by_id(current_user.stud_group_id)
-        group_num = int(request.values.get('group_num', current_user_group.num))
-        group_subnum = int(request.values.get('group_subnum', current_user_group.subnum))
-        course = int(request.values.get('course', current_user.course))
-    print(group_num)
-    print(group_subnum)
-    print(course)
-    selected_lesson_type = request.values.get('lesson_type')
-    selected_subject = request.values.get('lesson')
+        if request.method == 'GET':
+            current_user_group = get_group_of_current_user_by_id(current_user.stud_group_id)
+            group_num = int(request.values.get('group_num', current_user_group.num))
+            group_subnum = int(request.values.get('group_subnum', current_user_group.subnum))
+            course = int(request.values.get('course', current_user.course))
+        else:
+            group_num = int(request.values.get('group_num', 1))
+            group_subnum = int(request.values.get('group_subnum', 0))
+            course = int(request.values.get('course', 1))
+
+    selected_lesson_type = request.values.get('lesson_type', 'lection')
 
     # current_year = datetime.now().year
     current_year = 2018
@@ -824,8 +827,10 @@ def attendance():
     group = get_group_by_semester_and_group_number(semester, group_num, group_subnum)
     curriculum_units = get_curriculum_units_by_group_id_and_lesson_type(group.id, selected_lesson_type)
 
-    print(group)
-    print(group.students)
+    subjects_from_units = [unit.subject.to_dict() for unit in curriculum_units]
+    selected_subject = None
+    if subjects_from_units:
+        selected_subject = request.values.get('lesson', subjects_from_units[0]['name'])
 
     current_and_next_week_text_dates = get_current_and_next_week_text_dates()
 
@@ -837,21 +842,20 @@ def attendance():
                                selected_lesson_type=selected_lesson_type,
                                selected_subject=selected_subject,
                                students=group.students,
-                               curriculum_units=curriculum_units,
+                               subjects=subjects_from_units,
                                group_num=group_num,
                                group_subnum=group_subnum,
                                week_dates=current_and_next_week_text_dates)
-    else:
-        return jsonify(course=course,
-                       groups=[group.to_dict() for group in groups],
-                       lesson_types=[lesson_type.value for lesson_type in LessonType],
-                       selected_lesson_type=selected_lesson_type,
-                       selected_subject=selected_subject,
-                       students=[stud.to_dict() for stud in group.students],
-                       subjects=[unit.subject.to_dict() for unit in curriculum_units],
-                       group_num=group_num,
-                       group_subnum=group_subnum,
-                       week_dates=current_and_next_week_text_dates)
+    return jsonify(course=course,
+                   groups=[group.to_dict() for group in groups],
+                   lesson_types=[lesson_type.value for lesson_type in LessonType],
+                   selected_lesson_type=selected_lesson_type,
+                   selected_subject=selected_subject,
+                   students=[stud.to_dict() for stud in group.students],
+                   subjects=subjects_from_units,
+                   group_num=group_num,
+                   group_subnum=group_subnum,
+                   week_dates=current_and_next_week_text_dates)
 
 
 if __name__ == '__main__':

@@ -580,9 +580,9 @@ class AttMark(db.Model):
 
 class LessonType(Enum):
     """Перечисление для типа занятий"""
-    lection = 'Лекция'
-    practice = 'Практика'
-    seminar = 'Семинар'
+    lection = 'lection'
+    practice = 'practice'
+    seminar = 'seminar'
 
 
 class TeachingLesson(db.Model):
