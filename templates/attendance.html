@@ -11,9 +11,13 @@
 <div class="container-fluid text-center">
     <div class="row border-bottom border-top">
         <div class="col-3 my-auto">
-            {% if current_user.role_name in ('Teacher') %}
-                <div class="form-check float-left">
-                    <input type="checkbox" class="form-check-input" id="checkbox_is_groupleader_mark_attendance">
+            {% if current_user.role_name in ('Teacher') %}2
+                <div class="form-check float-left" id="checkbox_is_groupleader_mark_attendance_form">
+                    {% if can_expose_group_leader %}
+                        <input type="checkbox" class="form-check-input" id="checkbox_is_groupleader_mark_attendance" checked>
+                    {% else %}
+                        <input type="checkbox" class="form-check-input" id="checkbox_is_groupleader_mark_attendance">
+                    {% endif %}
                     <label class="form-check-label" for="checkbox_is_groupleader_mark_attendance">Староста отмечает
                         посещаемость</label>
                 </div>
@@ -26,14 +30,6 @@
         <div class="col-4"></div>
     </div>
     <div class="row border-bottom border-top">
-        {#        <div class="col-2 p-0 my-auto" style="max-width: 190px;">#}
-        {#            <a href="{{ url_for('print_excel') }}" id="print-to-excel" class="text-dark">#}
-        {#                <i class="fas fa-file-excel fa-2x bg-success"></i>#}
-        {#            </a>#}
-        {#            <a href="{{ url_for('print_pdf') }}" class="text-dark">#}
-        {#                <i class="fas fa-file-pdf fa-2x bg-danger"></i>#}
-        {#            </a>#}
-        {#        </div>#}
         <div class="col p-0">
             <select class="custom-select" style="border-radius: 0;" id="course">
                 {% for i in range(1, 5) %}
@@ -93,7 +89,7 @@
             <tr>
                 <td class="align-middle font-weight-bold">{{ student.full_name }}</td>
                 {% for attend in student.attendance %}
-                    {% if attend.lesson_attendance %}
+                    {% if attend.lesson_attendance and attend.teaching_lesson_id == teaching_lesson_id %}
                         <td class="align-middle h2">+</td>
                     {% else %}
                         <td class="align-middle h2">-</td>

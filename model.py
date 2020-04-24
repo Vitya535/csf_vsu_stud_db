@@ -315,7 +315,6 @@ class _CurriculumUnit:
 
 
 class CurriculumUnit(db.Model, _CurriculumUnit):
-    RELATIONSHIPS_TO_DICT = True
     __tablename__ = 'curriculum_unit'
     __table_args__ = (
         db.UniqueConstraint('subject_id', 'stud_group_id'),
@@ -609,7 +608,7 @@ class TeachingLesson(db.Model):
                f" day_number_numerator={self.day_number_numerator}," \
                f" pair_number_denominator={self.pair_number_denominator}," \
                f" day_number_denominator={self.day_number_denominator}," \
-               f" can_expose_captain={self.can_expose_group_leader}," \
+               f" can_expose_group_leader={self.can_expose_group_leader}," \
                f" lesson_type={self.lesson_type})"
 
 
@@ -619,18 +618,22 @@ class Attendance(BaseModel):
 
     _default_fields = [
         'lesson_attendance'
+        'teaching_lesson_id'
     ]
 
     attendance_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     lesson_attendance = db.Column(db.Boolean, nullable=False, default=False)
     lesson_date = db.Column(db.Date, nullable=False, primary_key=True)
     student_id = db.Column(db.BigInteger, db.ForeignKey('student.student_id'), nullable=False, primary_key=True)
+    teaching_lesson_id = db.Column(db.INTEGER, db.ForeignKey('teaching_lesson.teaching_lesson_id'), primary_key=True,
+                                   nullable=False)
 
     def __repr__(self):
         return f"Attendance(attendance_teaching_lesson_id={self.attendance_id}," \
                f" lesson_attendance={self.lesson_attendance}," \
                f" lesson_date={self.lesson_date}," \
-               f" student_id={self.student_id})"
+               f" student_id={self.student_id})," \
+               f" teaching_lesson_id={self.teaching_lesson_id}"
 
 
 # class HalfYearEnum(Enum):
