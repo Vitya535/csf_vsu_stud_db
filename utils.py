@@ -16,5 +16,20 @@ def get_current_and_next_week_text_dates() -> list:
     return current_and_next_week_text_dates
 
 
-def get_current_lesson_and_his_type():
-    pass
+def convert_students_with_attendance_to_dict(students: list,
+                                             teaching_lesson_id: int,
+                                             current_and_next_week_dates: list) -> dict:
+    students_with_attendance_dict = {}
+    for student in students:
+        attendance_list = []
+        for week_date in current_and_next_week_dates:
+            for attendance in student.attendance:
+                print(f"attendance_lesson_date: {attendance.lesson_date}")
+                print(f"week_date: {week_date}")
+                if attendance.lesson_attendance and attendance.teaching_lesson_id == teaching_lesson_id \
+                        and attendance.lesson_date == week_date:
+                    attendance_list.append(attendance)
+                else:
+                    attendance_list.append(None)
+            students_with_attendance_dict[student] = attendance_list
+    return students_with_attendance_dict

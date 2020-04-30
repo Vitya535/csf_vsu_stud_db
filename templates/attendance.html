@@ -10,11 +10,12 @@
 {% include '_menu.html' %}
 <div class="container-fluid text-center">
     <div class="row border-bottom border-top">
-        <div class="col-3 my-auto">
-            {% if current_user.role_name in ('Teacher') %}2
+        <div class="col my-auto">
+            {% if current_user.role_name in ('Teacher') %}
                 <div class="form-check float-left" id="checkbox_is_groupleader_mark_attendance_form">
                     {% if can_expose_group_leader %}
-                        <input type="checkbox" class="form-check-input" id="checkbox_is_groupleader_mark_attendance" checked>
+                        <input type="checkbox" class="form-check-input" id="checkbox_is_groupleader_mark_attendance"
+                               checked>
                     {% else %}
                         <input type="checkbox" class="form-check-input" id="checkbox_is_groupleader_mark_attendance">
                     {% endif %}
@@ -23,20 +24,23 @@
                 </div>
             {% endif %}
         </div>
-        <div class="col-1"></div>
-        <div class="col-4">
+        <div class="col my-auto">
             <h1>Посещаемость</h1>
         </div>
-        <div class="col-4"></div>
+        <div class="col my-auto">
+            {% if current_user.role_name in ('Teacher') or (current_user.role_name in ('GroupLeader') and can_expose_group_leader_value) %}
+                <input class="form-control" type="number" size="20" id="card_number" name="card_number" placeholder="Введите номер карты" required>
+            {% endif %}
+        </div>
     </div>
     <div class="row border-bottom border-top">
         <div class="col p-0">
             <select class="custom-select" style="border-radius: 0;" id="course">
                 {% for i in range(1, 5) %}
                     {% if i != course %}
-                        <option>{{ i }} курс</option>
+                        <option value="{{ i }}">{{ i }} курс</option>
                     {% else %}
-                        <option selected>{{ i }} курс</option>
+                        <option value="{{ i }}" selected>{{ i }} курс</option>
                     {% endif %}
                 {% endfor %}
             </select>
@@ -44,10 +48,10 @@
         <div class="col p-0">
             <select class="custom-select" style="border-radius: 0;" id="group">
                 {% for group in groups %}
-                    {% if group.num == group_num and group.subnum == group_subnum %}
-                        <option selected>{{ group.num_print }} группа</option>
+                    {% if group.num == selected_group.num and group.subnum == selected_group.subnum %}
+                        <option value="{{ group.num_print }}" selected>{{ group.num_print }} группа</option>
                     {% else %}
-                        <option>{{ group.num_print }} группа</option>
+                        <option value="{{ group.num_print }}">{{ group.num_print }} группа</option>
                     {% endif %}
                 {% endfor %}
             </select>
@@ -56,9 +60,9 @@
             <select class="custom-select" style="border-radius: 0;" id="lesson_type">
                 {% for lesson_type in lesson_types %}
                     {% if lesson_type == selected_lesson_type %}
-                        <option selected>{{ lesson_type }}</option>
+                        <option value="{{ lesson_type }}" selected>{{ lesson_type }}</option>
                     {% else %}
-                        <option>{{ lesson_type }}</option>
+                        <option value="{{ lesson_type }}">{{ lesson_type }}</option>
                     {% endif %}
                 {% endfor %}
             </select>
@@ -67,9 +71,9 @@
             <select class="custom-select" style="border-radius: 0;" id="lesson">
                 {% for subject in subjects %}
                     {% if subject.name == selected_subject %}
-                        <option selected>{{ subject.name }}</option>
+                        <option value="{{ subject.name }}" selected>{{ subject.name }}</option>
                     {% else %}
-                        <option>{{ subject.name }}</option>
+                        <option value="{{ subject.name }}">{{ subject.name }}</option>
                     {% endif %}
                 {% endfor %}
             </select>
@@ -85,11 +89,12 @@
         </tr>
         </thead>
         <tbody>
-        {% for student in students %}
+        {% for student, attendance in students.items() %}
             <tr>
                 <td class="align-middle font-weight-bold">{{ student.full_name }}</td>
-                {% for attend in student.attendance %}
-                    {% if attend.lesson_attendance and attend.teaching_lesson_id == teaching_lesson_id %}
+                <input type="hidden" name="card_number" value="{{ student.card_number }}">
+                {% for attend in attendance %}
+                    {% if attend.lesson_attendance %}
                         <td class="align-middle h2">+</td>
                     {% else %}
                         <td class="align-middle h2">-</td>

@@ -93,7 +93,7 @@ class BaseModel(db.Model):
                     items = getattr(self, key)
                     if self.__mapper__.relationships[key].query_class is not None:
                         if hasattr(items, "all"):
-                            items = items.all()
+                            items = items.all
                     ret_data[key] = []
                     for item in items:
                         ret_data[key].append(
@@ -139,7 +139,6 @@ class BaseModel(db.Model):
                         show=list(show),
                         _hide=list(_hide),
                         _path=("%s.%s" % (_path, key.lower()))
-                        # _path = ('%s.%s' % (path, key.lower())),
                     )
                 else:
                     try:
@@ -215,6 +214,7 @@ class StudGroup(BaseModel, _ObjectWithSemester, _ObjectWithYear):
     )
 
     _default_fields = [
+        'num_print',
         'num',
         'subnum'
     ]
@@ -410,9 +410,7 @@ class Student(BaseModel, Person, _ObjectWithSemester):
     __tablename__ = 'student'
 
     _default_fields = [
-        'surname',
-        'middlename',
-        'firstname',
+        'full_name',
         'attendance'
     ]
 
@@ -602,6 +600,10 @@ class TeachingLesson(db.Model):
         'CurriculumUnit', secondary='teaching_lesson_and_curriculum_unit'
     )
 
+    teaching_pairs = db.relationship(
+        'TeachingPairs'
+    )
+
     def __repr__(self):
         return f"TeachingLesson(teaching_lesson_id={self.teaching_lesson_id}," \
                f" pair_number_numerator={self.pair_number_numerator}," \
@@ -635,6 +637,12 @@ class Attendance(BaseModel):
                f" student_id={self.student_id})," \
                f" teaching_lesson_id={self.teaching_lesson_id}"
 
+    def __init__(self, lesson_attendance, lesson_date, student_id, teaching_lesson_id):
+        self.lesson_attendance = lesson_attendance
+        self.lesson_date = lesson_date
+        self.student_id = student_id
+        self.teaching_lesson_id = teaching_lesson_id
+
 
 # class HalfYearEnum(Enum):
 #     """Перечисление для типа занятий"""
@@ -666,6 +674,8 @@ class TeachingPairs(db.Model):
     pair_number = db.Column(db.INTEGER, nullable=False)
     time_of_beginning = db.Column(db.TIME, nullable=False)
     time_of_ending = db.Column(db.TIME, nullable=False)
+
+    teaching_lesson_id = db.Column(db.Integer, db.ForeignKey('teaching_lesson.teaching_lesson_id'), nullable=False)
 
     def __repr__(self):
         return f"TeachingPairs(pair_id={self.pair_id}," \

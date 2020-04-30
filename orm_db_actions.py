@@ -93,14 +93,24 @@ def get_student_by_id_and_fio(semester: int, group_id: int, student_name: str, s
     return student
 
 
-def update_attendance(student_id: int, teaching_lesson_id: int, lesson_date, lesson_attendance: bool):
-    """Апдейт ячейки посещаемости по определенной дате для студента с конкретным предметом"""
-    db.session.query(Attendance). \
+def insert_or_update_attendance(student_id: int, teaching_lesson_id: int, lesson_date, lesson_attendance: bool):
+    """Апдейт или вставка новой ячейки посещаемости по определенной дате для студента с конкретным предметом"""
+    attendance = db.session.query(Attendance). \
         filter(Attendance.student_id == student_id). \
         filter(Attendance.teaching_lesson_id == teaching_lesson_id). \
         filter(Attendance.lesson_date == lesson_date). \
-        update({'lesson_attendance': lesson_attendance})
+        first()
+    if not attendance:
+        attendance = Attendance(lesson_attendance, lesson_date, student_id, teaching_lesson_id)
+        db.session.add(attendance)
+    else:
+        db.session.query(Attendance). \
+                filter(Attendance.student_id == student_id). \
+                filter(Attendance.teaching_lesson_id == teaching_lesson_id). \
+                filter(Attendance.lesson_date == lesson_date). \
+                update({'lesson_attendance': lesson_attendance})
     db.session.commit()
+    return attendance
 
 
 def update_can_expose_group_leader_attr_by_teaching_lesson_id(teaching_lesson_id: int,
@@ -118,3 +128,11 @@ def get_attr_can_expose_group_leader_by_teaching_lesson_id(teaching_lesson_id: i
         filter(TeachingLesson.teaching_lesson_id == teaching_lesson_id). \
         first().can_expose_group_leader
     return can_expose_group_leader_value
+
+
+def get_student_by_card_number(card_number: int) -> Student:
+    """Получение студента по номеру его карты"""
+    student = db.session.query(Student). \
+        filter(Student.card_number == card_number). \
+        first()
+    return student
