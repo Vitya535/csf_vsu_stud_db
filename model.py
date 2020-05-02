@@ -411,7 +411,8 @@ class Student(BaseModel, Person, _ObjectWithSemester):
 
     _default_fields = [
         'full_name',
-        'attendance'
+        'attendance',
+        'card_number'
     ]
 
     id = db.Column('student_id', db.BIGINT, primary_key=True)

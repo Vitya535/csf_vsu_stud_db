@@ -1,10 +1,11 @@
 let previousClickedTd;
+let [currentCourse, currentGroupNum, currentGroupSubnum, currentTypeOfLesson, currentSubject] =
+    getDataForAttendance();
 
-function getDataForAttendance () {
-    const currentCourse = $("#course").children("option:selected").val().split(' ')[0];
+function getDataForAttendance() {
+    const currentCourse = $("#course").children("option:selected").val();
     const group = $("#group").children("option:selected").val();
-    const groupSplit = group.split(' ')[0].split('.');
-    let [currentGroupNum, currentGroupSubnum] = groupSplit;
+    let [currentGroupNum, currentGroupSubnum] = group.split('.');
     if (!currentGroupSubnum) {
         currentGroupSubnum = 0;
     }
@@ -13,28 +14,28 @@ function getDataForAttendance () {
     return [currentCourse, currentGroupNum, currentGroupSubnum, currentTypeOfLesson, currentSubject];
 }
 
-function getTdForHighlightAndTrWithNowDate() {
-    const table = $('#table-attendance');
-    const nowDate = new Date().toLocaleDateString();
-    const trWithNowDate = $(table)
-        .children('thead')
-        .children('tr:first')
-        .children('th:contains(' + nowDate + '):first');
-
+function getTdForHighlight() {
+    let $tdOnOneLineWithNowDate;
+    const trWithNowDate = getTrWithNowDate();
     const nowDateIndex = $(trWithNowDate).index();
-    let tdOnOneLineWithNowDate;
     if (nowDateIndex !== -1) {
-        tdOnOneLineWithNowDate = $(table)
+        const $table = $('#table-attendance');
+        $tdOnOneLineWithNowDate = $table
             .children('tbody')
             .children('tr')
-            .find('td:eq(' + nowDateIndex + ')');
+            .find(`td:eq(${nowDateIndex})`);
     }
-    return [trWithNowDate, tdOnOneLineWithNowDate];
+    return $tdOnOneLineWithNowDate;
 }
 
-let [currentCourse, currentGroupNum, currentGroupSubnum, currentTypeOfLesson, currentSubject] =
-    getDataForAttendance();
-let [trWithNowDate, tdOnOneLineWithNowDate] = getTdForHighlightAndTrWithNowDate();
+function getTrWithNowDate() {
+    const nowDate = new Date().toLocaleDateString();
+    const $table = $('#table-attendance');
+    return $table
+        .children('thead')
+        .children('tr:first')
+        .children(`th:contains(${nowDate}):first`);
+}
 
 function attendancePostQuery() {
     const [course, groupNum, groupSubnum, lessonType, lesson] = getDataForAttendance();
@@ -67,40 +68,30 @@ function attendancePostQuery() {
     }
     $.post('/attendance', postParams, function (data) {
         console.log(data);
-        const table = $('#table-attendance');
-        const tableHeader = $(table)
-            .children('thead')
-            .children('tr:first');
-        const tbody = $(table).children('tbody');
+        const $table = $('#table-attendance');
+        const $tbody = $table.children('tbody');
         $('#group, #lesson').empty();
-        $(tableHeader)
-            .empty();
-        $(tbody)
-            .empty();
-        $('#course option[value=' + data.course + ']').prop('selected', true);
-        $.each(data.groups, function (index, group) {
-            $("#group").append('<option value=' + group.num_print + '>' + group.num_print + ' группа');
+        $tbody.empty();
+        $(`#course option[value='${data.course}']`).prop('selected', true);
+        $(data.groups).each(function () {
+            $("#group").append(`<option value="${this.num_print}">${this.num_print} группа`);
         });
-        $('#group option[value=' + data.selected_group.num_print + ']').prop('selected', true);
-        $('#lesson_type option[value=' + data.selected_lesson_type + ']').prop('selected', true);
-        $.each(data.subjects, function (index, subject) {
-            $("#lesson").append('<option value=' + subject.name + '>' + subject.name);
+        $(`#group option[value='${data.selected_group.num_print}']`).prop('selected', true);
+        $(`#lesson_type option[value='${data.selected_lesson_type}']`).prop('selected', true);
+        $(data.subjects).each(function () {
+            $("#lesson").append(`<option value="${this.name}">${this.name}`);
         });
-        $('#lesson option[value=' + data.selected_subject + ']').prop('selected', true);
-        $(tableHeader).append('<th scope="col">ФИО студента/Дата проведения занятия');
-        $.each(data.week_dates, function (index, week_date) {
-            $(tableHeader).append('<th scope="col" class="align-middle">' + week_date);
-        });
-        $.each(data.students, function (index, student) {
-            $(tbody).append('<tr>');
-            const tr = $(tbody).children('tr:last');
-            $(tr).append('<td class="align-middle font-weight-bold">' +
-                student.full_name);
-            $.each(student.attendance, function (index, attend) {
-                if (attend.lesson_attendance && attend.teaching_lesson_id === data.teaching_lesson_id) {
-                    $(tr).append('<td class="align-middle h2">+');
+        $(`#lesson option[value='${data.selected_subject}']`).prop('selected', true);
+        $(data.students).each(function () {
+            $tbody.append('<tr>');
+            const $tr = $tbody.children('tr:last');
+            $tr.append(`<input type="hidden" name="card_number" value="${this.card_number}">`);
+            $tr.append(`<td class="align-middle font-weight-bold">${this.full_name}`);
+            $(this.attendance).each(function () {
+                if (this.lesson_attendance && this.teaching_lesson_id === data.teaching_lesson_id) {
+                    $tr.append('<td class="align-middle h2">+');
                 } else {
-                    $(tr).append('<td class="align-middle h2">-');
+                    $tr.append('<td class="align-middle h2">-');
                 }
             });
         });
@@ -114,7 +105,6 @@ function attendancePostQuery() {
 }
 
 function markAttendStudent() {
-    const table = $('#table-attendance');
     let attendanceValue = "";
     if ($(this).text() === '-') {
         $(this).text('+');
@@ -123,17 +113,18 @@ function markAttendStudent() {
         $(this).text('-');
     }
     const clickedTdIndex = $(this).index();
-    const thForClickedTd = $(table)
+    const $table = $('#table-attendance');
+
+    const $thForClickedTd = $table
         .children('thead')
         .children('tr')
-        .children('th:eq(' + clickedTdIndex + ')');
+        .children(`th:eq(${clickedTdIndex})`);
 
     const parentTr = $(this).parent();
     const FIO = $(parentTr).children('td:first').text();
 
     const [surname, name, middlename] = FIO.split(" ");
-
-    const lessonDate = $(thForClickedTd).text();
+    const lessonDate = $thForClickedTd.text();
     const postParams = {
         attendance_value: attendanceValue,
         lesson_date: lessonDate,
@@ -161,92 +152,90 @@ function updateIsGroupLeaderMarkAttendance() {
     $.post('/update_is_groupleader_mark_attendance', postParams);
 }
 
-$('#card_number').on('keydown', function(e) {
-    const table = $('#table-attendance');
+$('#card_number').on('keydown', function (e) {
     if (e.keyCode === 13 && $(this).val()) {
         const cardNumber = $(this).val().replace(/^0+/, '');
 
         const lessonDate = new Date().toLocaleDateString();
 
-        const nowDateIndex = $(table)
+        const $table = $('#table-attendance');
+        const nowDateIndex = $table
             .children('thead')
             .children('tr:first')
-            .children('th:contains(' + lessonDate + '):first')
+            .children(`th:contains(${lessonDate}):first`)
             .index();
 
-        const cardNumberIndex = $(table)
-            .children('tbody')
-            .children('tr')
-            .children('input[value=' + cardNumber + ']')
-            .parent()
+        const $tbody = $table.children('tbody');
+        const cardNumberIndex = $tbody
+            .children(`tr:has(input[value=${cardNumber}])`)
             .index();
 
-        let tdToMark;
+        let $tdToMark;
         if (nowDateIndex !== -1 && cardNumberIndex !== -1) {
-            tdToMark = $(table)
-                .children('tbody')
-                .children('tr:eq(' + cardNumberIndex + ')')
-                .children('td:eq(' + nowDateIndex + ')');
+            $tdToMark = $tbody
+                .children(`tr:eq(${cardNumberIndex})`)
+                .children(`td:eq(${nowDateIndex})`);
         }
-        const attendanceValue = $(tdToMark).text();
 
-        $.post('/mark_by_card_number', {card_number: cardNumber,
-                                        selected_subject: currentSubject,
-                                        lesson_date: lessonDate,
-                                        attendance_value: attendanceValue},
-        function (studentWithCardNumber) {
-            if ($.isEmptyObject(studentWithCardNumber)) {
-                $.toast({
-                    heading: 'Error',
-                    text: 'Студент с таким номером карты не найден!',
-                    showHideTransition: 'fade',
-                    icon: 'error',
-                    position: 'bottom-right'
-                });
-            } else {
-                $.toast({
-                    heading: 'Success',
-                    text: 'Отметка прошла успешно',
-                    showHideTransition: 'fade',
-                    icon: 'success',
-                    position: 'bottom-right'
-                });
-                if (attendanceValue === '+') {
-                    $(tdToMark).text('-');
+        $.post('/mark_by_card_number', {
+                card_number: cardNumber,
+                selected_subject: currentSubject,
+                lesson_date: lessonDate
+            },
+            function (studentWithCardNumber) {
+                if ($.isEmptyObject(studentWithCardNumber)) {
+                    $.toast({
+                        heading: 'Error',
+                        text: 'Студент с таким номером карты не найден!',
+                        showHideTransition: 'fade',
+                        icon: 'error',
+                        position: 'bottom-right'
+                    });
                 } else {
-                    $(tdToMark).text('+');
+                    $.toast({
+                        heading: 'Success',
+                        text: 'Отметка прошла успешно',
+                        showHideTransition: 'fade',
+                        icon: 'success',
+                        position: 'bottom-right'
+                    });
+                    $tdToMark.text('+');
                 }
-            }
-        });
+            });
         $(this).val('');
     }
 });
 
-function highlightRed() {
+function highlightBlue() {
     $(previousClickedTd).css({backgroundColor: 'red'});
     previousClickedTd = $(this);
     $(previousClickedTd).css({backgroundColor: 'blue'});
 }
 
-$('select.custom-select').on('change', attendancePostQuery);
-$('#checkbox_is_groupleader_mark_attendance').on('click', updateIsGroupLeaderMarkAttendance);
-$(tdOnOneLineWithNowDate).on('click', highlightRed);
-
-{% if current_user.role_name in ('GroupLeader') and can_expose_group_leader_value %}
-    $(tdOnOneLineWithNowDate).on('dblclick', markAttendStudent);
-{% elif current_user.role_name in ('Teacher', 'AdminUser') %}
-    $('#table-attendance').find('td').on('dblclick', markAttendStudent);
-{% endif %}
-
-function init() {
-    $(trWithNowDate).css({backgroundColor: 'red'});
-    $(tdOnOneLineWithNowDate).css({backgroundColor: 'red', cursor: 'pointer'});
+function highlightNowDateAttendance() {
+    let $trWithNowDate = getTrWithNowDate();
+    let $tdOnOneLineWithNowDate = getTdForHighlight();
+    $trWithNowDate.css({backgroundColor: 'red'});
+    $tdOnOneLineWithNowDate.css({backgroundColor: 'red', cursor: 'pointer'});
 }
 
 $(document)
     .ready(function () {
-        init();
+        highlightNowDateAttendance();
+        let $tdOnOneLineWithNowDate = getTdForHighlight();
+
+        $('.custom-select').on('change', attendancePostQuery);
+        $('#checkbox_is_groupleader_mark_attendance').on('click', updateIsGroupLeaderMarkAttendance);
+        $tdOnOneLineWithNowDate.on('click', highlightBlue);
+
+        {% if current_user.role_name in ('GroupLeader') and can_expose_group_leader_value %}
+            $tdOnOneLineWithNowDate.on('dblclick', markAttendStudent);
+        {% elif current_user.role_name in ('Teacher', 'AdminUser') %}
+            $('#table-attendance').on('dblclick', 'td', markAttendStudent);
+        {% endif %}
     })
     .ajaxComplete(function () {
-        init();
+        highlightNowDateAttendance();
+        let $tdOnOneLineWithNowDate = getTdForHighlight();
+        $tdOnOneLineWithNowDate.on('click', highlightBlue);
     });

@@ -89,17 +89,17 @@
         </tr>
         </thead>
         <tbody>
-        {% for student, attendance in students.items() %}
+        {% for student in students %}
             <tr>
-                <td class="align-middle font-weight-bold">{{ student.full_name }}</td>
                 <input type="hidden" name="card_number" value="{{ student.card_number }}">
-                {% for attend in attendance %}
-                    {% if attend.lesson_attendance %}
-                        <td class="align-middle h2">+</td>
-                    {% else %}
-                        <td class="align-middle h2">-</td>
-                    {% endif %}
-                {% endfor %}
+                <td class="align-middle font-weight-bold">{{ student.full_name }}</td>
+{#                {% for attend in student.attendance %}#}
+{#                    {% if attend.lesson_attendance %}#}
+{#                        <td class="align-middle h2">+</td>#}
+{#                    {% else %}#}
+{#                        <td class="align-middle h2">-</td>#}
+{#                    {% endif %}#}
+{#                {% endfor %}#}
             </tr>
         {% endfor %}
         </tbody>
