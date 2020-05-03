@@ -18,4 +18,5 @@ class Config:
 
 app = Flask(__name__)
 app.config.from_object(Config())
+app.jinja_env.filters['zip'] = zip
 db = SQLAlchemy(app=app, session_options={'autoflush': False})

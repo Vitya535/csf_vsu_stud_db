@@ -70,8 +70,10 @@ function attendancePostQuery() {
         console.log(data);
         const $table = $('#table-attendance');
         const $tbody = $table.children('tbody');
+        const $tableHeader = $table.children('thead').children('tr:first');
         $('#group, #lesson').empty();
         $tbody.empty();
+        $tableHeader.empty();
         $(`#course option[value='${data.course}']`).prop('selected', true);
         $(data.groups).each(function () {
             $("#group").append(`<option value="${this.num_print}">${this.num_print} группа`);
@@ -82,18 +84,30 @@ function attendancePostQuery() {
             $("#lesson").append(`<option value="${this.name}">${this.name}`);
         });
         $(`#lesson option[value='${data.selected_subject}']`).prop('selected', true);
+        $tableHeader.append('<th scope="col">ФИО студента/Дата проведения занятия');
+        $(data.week_dates).each(function () {
+            $tableHeader.append('<th scope="col" class="align-middle">' + this);
+        });
         $(data.students).each(function () {
             $tbody.append('<tr>');
             const $tr = $tbody.children('tr:last');
             $tr.append(`<input type="hidden" name="card_number" value="${this.card_number}">`);
             $tr.append(`<td class="align-middle font-weight-bold">${this.full_name}`);
-            $(this.attendance).each(function () {
-                if (this.lesson_attendance && this.teaching_lesson_id === data.teaching_lesson_id) {
-                    $tr.append('<td class="align-middle h2">+');
-                } else {
-                    $tr.append('<td class="align-middle h2">-');
-                }
-            });
+            if (this.attendance) {
+                $(this.attendance).each(function () {
+                    if (this.lesson_attendance) {
+                        $tr.append('<td class="align-middle h2">+');
+                    } else if (!this.lesson_attendance) {
+                        $tr.append('<td class="align-middle h2">-');
+                    } else {
+                        $tr.append('<td class="align-middle h2">');
+                    }
+                });
+            } else {
+                $(data.week_dates).each(function () {
+                    $tr.append('<td class="align-middle h2">');
+                });
+            }
         });
         $('#checkbox_is_groupleader_mark_attendance').prop('checked', data.can_expose_group_leader);
         currentCourse = course;
@@ -106,7 +120,7 @@ function attendancePostQuery() {
 
 function markAttendStudent() {
     let attendanceValue = "";
-    if ($(this).text() === '-') {
+    if ($(this).text() === '' || $(this).text() === '-') {
         $(this).text('+');
         attendanceValue = "true";
     } else {
@@ -120,6 +134,8 @@ function markAttendStudent() {
         .children('tr')
         .children(`th:eq(${clickedTdIndex})`);
 
+    const teachingPairId = $thForClickedTd.attr('data-teaching_pair_id');
+
     const parentTr = $(this).parent();
     const FIO = $(parentTr).children('td:first').text();
 
@@ -131,10 +147,10 @@ function markAttendStudent() {
         group_num: currentGroupNum,
         group_subnum: currentGroupSubnum,
         course: currentCourse,
-        selected_subject: currentSubject,
         student_name: name,
         student_surname: surname,
-        student_middlename: middlename
+        student_middlename: middlename,
+        teaching_pair_id: teachingPairId
     }
     $.post('/mark_attendance', postParams);
 }
@@ -159,11 +175,14 @@ $('#card_number').on('keydown', function (e) {
         const lessonDate = new Date().toLocaleDateString();
 
         const $table = $('#table-attendance');
-        const nowDateIndex = $table
+        const $thWithLessonDate = $table
             .children('thead')
             .children('tr:first')
-            .children(`th:contains(${lessonDate}):first`)
-            .index();
+            .children(`th:contains(${lessonDate}):first`);
+
+        const nowDateIndex = $thWithLessonDate.index();
+
+        const teaching_pair_id = $thWithLessonDate.attr('data-teaching_pair_id')
 
         const $tbody = $table.children('tbody');
         const cardNumberIndex = $tbody
@@ -179,8 +198,8 @@ $('#card_number').on('keydown', function (e) {
 
         $.post('/mark_by_card_number', {
                 card_number: cardNumber,
-                selected_subject: currentSubject,
-                lesson_date: lessonDate
+                lesson_date: lessonDate,
+                teaching_pair_id: teaching_pair_id
             },
             function (studentWithCardNumber) {
                 if ($.isEmptyObject(studentWithCardNumber)) {
@@ -221,12 +240,14 @@ function highlightNowDateAttendance() {
 
 $(document)
     .ready(function () {
-        highlightNowDateAttendance();
         let $tdOnOneLineWithNowDate = getTdForHighlight();
+        if ($tdOnOneLineWithNowDate) {
+            highlightNowDateAttendance();
+            $tdOnOneLineWithNowDate.on('click', highlightBlue);
+        }
 
         $('.custom-select').on('change', attendancePostQuery);
         $('#checkbox_is_groupleader_mark_attendance').on('click', updateIsGroupLeaderMarkAttendance);
-        $tdOnOneLineWithNowDate.on('click', highlightBlue);
 
         {% if current_user.role_name in ('GroupLeader') and can_expose_group_leader_value %}
             $tdOnOneLineWithNowDate.on('dblclick', markAttendStudent);
@@ -235,7 +256,9 @@ $(document)
         {% endif %}
     })
     .ajaxComplete(function () {
-        highlightNowDateAttendance();
         let $tdOnOneLineWithNowDate = getTdForHighlight();
-        $tdOnOneLineWithNowDate.on('click', highlightBlue);
+        if ($tdOnOneLineWithNowDate) {
+            highlightNowDateAttendance();
+            $tdOnOneLineWithNowDate.on('click', highlightBlue);
+        }
     });

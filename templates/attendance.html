@@ -83,8 +83,8 @@
         <thead>
         <tr> <!-- 12 дат (2 недели) -->
             <th scope="col">ФИО студента/Дата проведения занятия</th>
-            {% for week_date in week_dates %}
-                <th scope="col" class="align-middle">{{ week_date }}</th>
+            {% for week_date, teaching_pair_id in week_dates|zip(teaching_pair_ids) %}
+                <th scope="col" class="align-middle" data-teaching_pair_id="{{ teaching_pair_id }}">{{ week_date }}</th>
             {% endfor %}
         </tr>
         </thead>
@@ -93,13 +93,19 @@
             <tr>
                 <input type="hidden" name="card_number" value="{{ student.card_number }}">
                 <td class="align-middle font-weight-bold">{{ student.full_name }}</td>
-{#                {% for attend in student.attendance %}#}
-{#                    {% if attend.lesson_attendance %}#}
-{#                        <td class="align-middle h2">+</td>#}
-{#                    {% else %}#}
-{#                        <td class="align-middle h2">-</td>#}
-{#                    {% endif %}#}
-{#                {% endfor %}#}
+                {% for attend in student.attendance %}
+                    {% if attend.lesson_attendance %}
+                        <td class="align-middle h2">+</td>
+                    {% elif not attend.lesson_attendance %}
+                        <td class="align-middle h2">-</td>
+                    {% else %}
+                        <td class="align-middle h2"></td>
+                    {% endif %}
+                {% else %}
+                    {% for week_date in week_dates %}
+                        <td class="align-middle h2"></td>
+                    {% endfor %}
+                {% endfor %}
             </tr>
         {% endfor %}
         </tbody>

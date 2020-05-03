@@ -96,13 +96,14 @@ class BaseModel(db.Model):
                             items = items.all
                     ret_data[key] = []
                     for item in items:
-                        ret_data[key].append(
-                            item.to_dict(
-                                show=list(show),
-                                _hide=list(_hide),
-                                _path=("%s.%s" % (_path, key.lower())),
+                        if item is not None:
+                            ret_data[key].append(
+                                item.to_dict(
+                                    show=list(show),
+                                    _hide=list(_hide),
+                                    _path=("%s.%s" % (_path, key.lower())),
+                                )
                             )
-                        )
                 else:
                     if (
                             self.__mapper__.relationships[key].query_class is not None
@@ -597,13 +598,8 @@ class TeachingLesson(db.Model):
 
     lesson_type = db.Column(db.Enum(LessonType), nullable=False)
 
-    curriculum_units = db.relationship(
-        'CurriculumUnit', secondary='teaching_lesson_and_curriculum_unit'
-    )
-
-    teaching_pairs = db.relationship(
-        'TeachingPairs'
-    )
+    curriculum_units = db.relationship('CurriculumUnit', secondary='teaching_lesson_and_curriculum_unit')
+    teaching_pairs = db.relationship('TeachingPairs')
 
     def __repr__(self):
         return f"TeachingLesson(teaching_lesson_id={self.teaching_lesson_id}," \
@@ -621,28 +617,28 @@ class Attendance(BaseModel):
 
     _default_fields = [
         'lesson_attendance'
-        'teaching_lesson_id'
+        'teaching_pair_id'
     ]
 
     attendance_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     lesson_attendance = db.Column(db.Boolean, nullable=False, default=False)
     lesson_date = db.Column(db.Date, nullable=False, primary_key=True)
     student_id = db.Column(db.BigInteger, db.ForeignKey('student.student_id'), nullable=False, primary_key=True)
-    teaching_lesson_id = db.Column(db.INTEGER, db.ForeignKey('teaching_lesson.teaching_lesson_id'), primary_key=True,
-                                   nullable=False)
+    teaching_pair_id = db.Column(db.INTEGER, db.ForeignKey('teaching_pairs.pair_id'), primary_key=True,
+                                 nullable=False)
 
     def __repr__(self):
         return f"Attendance(attendance_teaching_lesson_id={self.attendance_id}," \
                f" lesson_attendance={self.lesson_attendance}," \
                f" lesson_date={self.lesson_date}," \
                f" student_id={self.student_id})," \
-               f" teaching_lesson_id={self.teaching_lesson_id}"
+               f" teaching_lesson_id={self.teaching_pair_id}"
 
-    def __init__(self, lesson_attendance, lesson_date, student_id, teaching_lesson_id):
+    def __init__(self, lesson_attendance, lesson_date, student_id, teaching_pair_id):
         self.lesson_attendance = lesson_attendance
         self.lesson_date = lesson_date
         self.student_id = student_id
-        self.teaching_lesson_id = teaching_lesson_id
+        self.teaching_pair_id = teaching_pair_id
 
 
 # class HalfYearEnum(Enum):
@@ -677,6 +673,7 @@ class TeachingPairs(db.Model):
     time_of_ending = db.Column(db.TIME, nullable=False)
 
     teaching_lesson_id = db.Column(db.Integer, db.ForeignKey('teaching_lesson.teaching_lesson_id'), nullable=False)
+    attendance = db.relationship('Attendance')
 
     def __repr__(self):
         return f"TeachingPairs(pair_id={self.pair_id}," \

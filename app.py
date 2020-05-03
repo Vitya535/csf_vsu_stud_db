@@ -12,18 +12,21 @@ from forms import StudentsUnallocatedForm
 from model import StudGroup, Subject, Teacher, Student, CurriculumUnit, CurriculumUnitUnion, AttMark, AdminUser, \
     Person, LessonType
 from orm_db_actions import get_all_groups_by_semester
-from orm_db_actions import get_attr_can_expose_group_leader_by_teaching_lesson_id
 from orm_db_actions import get_current_half_year
 from orm_db_actions import get_curriculum_units_by_group_id_and_lesson_type
 from orm_db_actions import get_group_by_semester_and_group_number
 from orm_db_actions import get_group_of_current_user_by_id
+from orm_db_actions import get_lesson_dates_for_subject
 from orm_db_actions import get_student_by_card_number
 from orm_db_actions import get_student_by_id_and_fio
+from orm_db_actions import get_teaching_pair_id_by_subject_name
+from orm_db_actions import filter_students_attendance
+from orm_db_actions import get_attr_can_expose_group_leader_by_teaching_lesson_id
+from orm_db_actions import update_can_expose_group_leader_attr_by_teaching_lesson_id
 from orm_db_actions import get_teaching_lesson_id_by_subject_name
 from orm_db_actions import insert_or_update_attendance
+from orm_db_actions import get_teaching_pair_ids
 from password_checker import password_checker
-from utils import convert_students_with_attendance_to_dict
-from utils import get_current_and_next_week_text_dates
 
 # flask-login
 login_manager = LoginManager()
@@ -807,14 +810,14 @@ def attendance():
     """Веб-страничка для отображения посещаемости"""
 
     if current_user.role_name not in ('Student', 'GroupLeader') or request.method == 'POST':
-        group_num = int(request.values.get('group_num', 1))
-        group_subnum = int(request.values.get('group_subnum', 0))
-        course = int(request.values.get('course', 1))
+        group_num = request.values.get('group_num', 1, type=int)
+        group_subnum = request.values.get('group_subnum', 0, type=int)
+        course = request.values.get('course', 1, type=int)
     else:
         current_user_group = get_group_of_current_user_by_id(current_user.stud_group_id)
-        group_num = int(request.values.get('group_num', current_user_group.num))
-        group_subnum = int(request.values.get('group_subnum', current_user_group.subnum))
-        course = int(request.values.get('course', current_user.course))
+        group_num = request.values.get('group_num', current_user_group.num, type=int)
+        group_subnum = request.values.get('group_subnum', current_user_group.subnum, type=int)
+        course = request.values.get('course', current_user.course, type=int)
 
     selected_lesson_type = request.values.get('lesson_type', 'lection')
 
@@ -833,33 +836,32 @@ def attendance():
         selected_subject = request.values.get('lesson', subjects_from_units[0]['name'])
 
     # teaching_lesson_id = get_teaching_lesson_id_by_subject_name(selected_subject)
-
+    #
     # can_expose_group_leader_value = get_attr_can_expose_group_leader_by_teaching_lesson_id(teaching_lesson_id)
 
-    # current_and_next_week_text_dates = get_current_and_next_week_text_dates()
+    students_with_filtered_attendance = filter_students_attendance(group.students, selected_subject)
 
-    # students_with_attendance_dict = convert_students_with_attendance_to_dict(group.students, teaching_lesson_id,
-    #                                                                          current_and_next_week_text_dates)
-    # print(students_with_attendance_dict)
+    current_and_next_week_text_dates = get_lesson_dates_for_subject(selected_subject, current_year,
+                                                                    current_half_year)
+
+    teaching_pair_ids = get_teaching_pair_ids(selected_subject)
 
     common_context_values = {
-        # 'teaching_lesson_id': teaching_lesson_id,
         'course': course,
         'groups': [group.to_dict() for group in groups],
         'selected_lesson_type': selected_lesson_type,
         'selected_subject': selected_subject,
-        'students': [stud.to_dict() for stud in group.students],
+        'students': [filtered_student.to_dict() for filtered_student in students_with_filtered_attendance],
         'subjects': subjects_from_units,
-        'selected_group': group.to_dict()
-        # 'week_dates': current_and_next_week_text_dates,
+        'selected_group': group.to_dict(),
+        'week_dates': current_and_next_week_text_dates,
+        'teaching_pair_ids': teaching_pair_ids
         # 'can_expose_group_leader': can_expose_group_leader_value
     }
 
     if request.method == 'GET':
-        current_and_next_week_text_dates = get_current_and_next_week_text_dates()
         return render_template('attendance.html',
                                **common_context_values,
-                               week_dates=current_and_next_week_text_dates,
                                lesson_types=[lesson_type.value for lesson_type in LessonType])
     return jsonify(**common_context_values)
 
@@ -870,14 +872,14 @@ def mark_attendance_for_student():
 
     lesson_date = datetime.strptime(request.values.get('lesson_date'), '%d.%m.%Y').strftime('%Y-%m-%d')
 
-    attendance_value = bool(request.values.get('attendance_value'))
-    group_num = int(request.values.get('group_num'))
-    group_subnum = int(request.values.get('group_subnum'))
-    course = int(request.values.get('course'))
-    selected_subject = request.values.get('selected_subject')
+    attendance_value = request.values.get('attendance_value', type=bool)
+    group_num = request.values.get('group_num', type=int)
+    group_subnum = request.values.get('group_subnum', type=int)
+    course = request.values.get('course', type=int)
     student_name = request.values.get('student_name')
     student_surname = request.values.get('student_surname')
     student_middlename = request.values.get('student_middlename')
+    teaching_pair_id = request.values.get('teaching_pair_id', type=int)
 
     # current_year = datetime.now().year
     current_year = 2018
@@ -887,9 +889,8 @@ def mark_attendance_for_student():
 
     group = get_group_by_semester_and_group_number(semester, group_num, group_subnum)
     student_to_mark = get_student_by_id_and_fio(semester, group.id, student_name, student_surname, student_middlename)
-    teaching_lesson_id = get_teaching_lesson_id_by_subject_name(selected_subject)
 
-    # insert_or_update_attendance(student_to_mark.id, teaching_lesson_id, lesson_date, attendance_value)
+    insert_or_update_attendance(student_to_mark.id, teaching_pair_id, lesson_date, attendance_value)
 
     return jsonify()
 
@@ -897,13 +898,12 @@ def mark_attendance_for_student():
 @app.route("/update_is_groupleader_mark_attendance", methods=['POST'])
 def update_is_groupleader_mark_attendance():
     """Урл, нужный для того, чтобы проапдейтить значение can_expose_group_leader для учебного занятия"""
-    can_expose_group_leader_value = bool(request.values.get('can_expose_group_leader_value'))
+    can_expose_group_leader_value = request.values.get('can_expose_group_leader_value', type=bool)
     selected_subject = request.values.get('selected_subject')
 
-    print(can_expose_group_leader_value)
     teaching_lesson_id = get_teaching_lesson_id_by_subject_name(selected_subject)
 
-    # update_can_expose_group_leader_attr_by_teaching_lesson_id(teaching_lesson_id, can_expose_group_leader_value)
+    update_can_expose_group_leader_attr_by_teaching_lesson_id(teaching_lesson_id, can_expose_group_leader_value)
 
     return jsonify()
 
@@ -912,14 +912,12 @@ def update_is_groupleader_mark_attendance():
 def mark_attendance_by_student_card_number():
     """Отметка посещения студента занятием по номеру его карты"""
     card_number = int(request.form['card_number'])
-    selected_subject = request.values.get('selected_subject')
     lesson_date = datetime.strptime(request.values.get('lesson_date'), '%d.%m.%Y').strftime('%Y-%m-%d')
+    teaching_pair_id = request.values.get('teaching_pair_id', type=int)
 
     student_with_card_number = get_student_by_card_number(card_number)
 
-    teaching_lesson_id = get_teaching_lesson_id_by_subject_name(selected_subject)
-
-    # insert_or_update_attendance(student_with_card_number.id, teaching_lesson_id, lesson_date, True)
+    insert_or_update_attendance(student_with_card_number.id, teaching_pair_id, lesson_date, True)
 
     if student_with_card_number:
         return jsonify(student_with_card_number.to_dict())

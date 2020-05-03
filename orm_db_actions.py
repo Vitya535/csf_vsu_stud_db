@@ -1,5 +1,7 @@
 """Модуль, необходимый для запросов к БД"""
 
+from datetime import datetime
+
 from sqlalchemy import between
 from sqlalchemy import func
 
@@ -69,15 +71,15 @@ def get_group_of_current_user_by_id(stud_group_id: int) -> StudGroup:
 
 
 def get_teaching_lesson_id_by_subject_name(subject_name: str) -> int:
-    """Запрос для получения teaching_lesson_id, необходимого для посещаемости"""
-    curriculum_unit_id = db.session.query(CurriculumUnit). \
+    """Запрос для получения teaching_lesson_id по названию предмета"""
+    curriculum_unit = db.session.query(CurriculumUnit). \
         join(CurriculumUnit.subject). \
         filter(Subject.name == subject_name). \
-        first().id
-    teaching_lesson_id = db.session.query(TEACHING_LESSON_AND_CURRICULUM_UNIT). \
-        filter(TEACHING_LESSON_AND_CURRICULUM_UNIT.c.curriculum_unit_id == curriculum_unit_id). \
-        first().teaching_lesson_id
-    return teaching_lesson_id
+        first()
+    teaching_lesson = db.session.query(TEACHING_LESSON_AND_CURRICULUM_UNIT). \
+        filter(TEACHING_LESSON_AND_CURRICULUM_UNIT.c.curriculum_unit_id == curriculum_unit.id). \
+        first()
+    return teaching_lesson.teaching_lesson_id
 
 
 def get_student_by_id_and_fio(semester: int, group_id: int, student_name: str, student_surname: str,
@@ -93,24 +95,23 @@ def get_student_by_id_and_fio(semester: int, group_id: int, student_name: str, s
     return student
 
 
-def insert_or_update_attendance(student_id: int, teaching_lesson_id: int, lesson_date, lesson_attendance: bool):
+def insert_or_update_attendance(student_id: int, teaching_pair_id: int, lesson_date, lesson_attendance: bool):
     """Апдейт или вставка новой ячейки посещаемости по определенной дате для студента с конкретным предметом"""
     attendance = db.session.query(Attendance). \
         filter(Attendance.student_id == student_id). \
-        filter(Attendance.teaching_lesson_id == teaching_lesson_id). \
+        filter(Attendance.teaching_pair_id == teaching_pair_id). \
         filter(Attendance.lesson_date == lesson_date). \
         first()
     if not attendance:
-        attendance = Attendance(lesson_attendance, lesson_date, student_id, teaching_lesson_id)
+        attendance = Attendance(lesson_attendance, lesson_date, student_id, teaching_pair_id)
         db.session.add(attendance)
     else:
         db.session.query(Attendance). \
-                filter(Attendance.student_id == student_id). \
-                filter(Attendance.teaching_lesson_id == teaching_lesson_id). \
-                filter(Attendance.lesson_date == lesson_date). \
-                update({'lesson_attendance': lesson_attendance})
+            filter(Attendance.student_id == student_id). \
+            filter(Attendance.teaching_pair_id == teaching_pair_id). \
+            filter(Attendance.lesson_date == lesson_date). \
+            update({'lesson_attendance': lesson_attendance})
     db.session.commit()
-    return attendance
 
 
 def update_can_expose_group_leader_attr_by_teaching_lesson_id(teaching_lesson_id: int,
@@ -124,10 +125,10 @@ def update_can_expose_group_leader_attr_by_teaching_lesson_id(teaching_lesson_id
 
 def get_attr_can_expose_group_leader_by_teaching_lesson_id(teaching_lesson_id: int) -> bool:
     """Получение атрибута can_expose_group_leader учебного занятия по его id"""
-    can_expose_group_leader_value = db.session.query(TeachingLesson). \
+    teaching_lesson = db.session.query(TeachingLesson). \
         filter(TeachingLesson.teaching_lesson_id == teaching_lesson_id). \
-        first().can_expose_group_leader
-    return can_expose_group_leader_value
+        first()
+    return teaching_lesson.can_expose_group_leader
 
 
 def get_student_by_card_number(card_number: int) -> Student:
@@ -136,3 +137,77 @@ def get_student_by_card_number(card_number: int) -> Student:
         filter(Student.card_number == card_number). \
         first()
     return student
+
+
+def get_lesson_dates_for_subject(subject_name: str, year: int, half_year: int) -> list:
+    """Запрос для получения дат занятия по парам по названию предмета"""
+    curriculum_unit = db.session.query(CurriculumUnit). \
+        join(CurriculumUnit.subject). \
+        filter(Subject.name == subject_name). \
+        first()
+    teaching_lessons = db.session.query(TeachingLesson). \
+        join(TeachingLesson.curriculum_units). \
+        filter(CurriculumUnit.id == curriculum_unit.id). \
+        all()
+    lessons_beginning = db.session.query(LessonsBeginning). \
+        filter(LessonsBeginning.year == year). \
+        filter(LessonsBeginning.half_year == half_year). \
+        first()
+    datetime_now = datetime.now()
+    current_week_number = datetime_now.isocalendar()[1]
+    beginning_week_number = lessons_beginning.beginning_date.isocalendar()[1]
+    diff_between_week_numbers = current_week_number - beginning_week_number
+    lesson_dates = []
+    if diff_between_week_numbers & 1:
+        for teaching_lesson in teaching_lessons:
+            lesson_date = datetime.fromisocalendar(datetime_now.year, current_week_number,
+                                                   teaching_lesson.day_number_numerator).strftime('%d.%m.%Y')
+            for teaching_pair in teaching_lesson.teaching_pairs:
+                lesson_dates.append(
+                    f"{lesson_date} {teaching_pair.time_of_beginning.strftime('%H:%M')} - {teaching_pair.time_of_ending.strftime('%H:%M')}")
+    else:
+        for teaching_lesson in teaching_lessons:
+            lesson_date = datetime.fromisocalendar(datetime_now.year, current_week_number,
+                                                   teaching_lesson.day_number_denominator).strftime('%d.%m.%Y')
+            for teaching_pair in teaching_lesson.teaching_pairs:
+                lesson_dates.append(
+                    f"{lesson_date} {teaching_pair.time_of_beginning.strftime('%H:%M')} - {teaching_pair.time_of_ending.strftime('%H:%M')}")
+    return lesson_dates
+
+
+def filter_students_attendance(students: list, subject_name: str) -> list:
+    curriculum_unit = db.session.query(CurriculumUnit). \
+        join(CurriculumUnit.subject). \
+        filter(Subject.name == subject_name). \
+        first()
+    teaching_lessons = db.session.query(TeachingLesson). \
+        join(TeachingLesson.curriculum_units). \
+        filter(CurriculumUnit.id == curriculum_unit.id). \
+        all()
+    for student in students:
+        student_attendance_list = []
+        for teaching_lesson in teaching_lessons:
+            for teaching_pair in teaching_lesson.teaching_pairs:
+                student_attendance = db.session.query(Attendance). \
+                    filter(Attendance.student_id == student.id). \
+                    filter(Attendance.teaching_pair_id == teaching_pair.pair_id). \
+                    first()
+                student_attendance_list.append(student_attendance)
+        student.attendance = student_attendance_list
+    return students
+
+
+def get_teaching_pair_ids(subject_name: str) -> list:
+    curriculum_unit = db.session.query(CurriculumUnit). \
+        join(CurriculumUnit.subject). \
+        filter(Subject.name == subject_name). \
+        first()
+    teaching_lessons = db.session.query(TeachingLesson). \
+        join(TeachingLesson.curriculum_units). \
+        filter(CurriculumUnit.id == curriculum_unit.id). \
+        all()
+    teaching_pair_ids = []
+    for teaching_lesson in teaching_lessons:
+        for teaching_pair in teaching_lesson.teaching_pairs:
+            teaching_pair_ids.append(teaching_pair.pair_id)
+    return teaching_pair_ids
