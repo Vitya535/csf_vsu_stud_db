@@ -29,12 +29,26 @@ function getTdForHighlight() {
 }
 
 function getTrWithNowDate() {
-    const nowDate = new Date().toLocaleDateString();
+    const nowDate = new Date();
+    const nowDateLocaleDateString = nowDate.toLocaleDateString();
     const $table = $('#table-attendance');
-    return $table
+    const ths = $table
         .children('thead')
         .children('tr:first')
-        .children(`th:contains(${nowDate}):first`);
+        .children(`th:contains(${nowDateLocaleDateString})`);
+    const convertedNowDateLocaleString = nowDateLocaleDateString.replace('.', '-');
+    const nowTime = `${nowDate.getHours()}:${nowDate.getMinutes()}:00`;
+    const nowDatetime = new Date(`${convertedNowDateLocaleString}T${nowTime}Z`);
+    $(ths).each(function () {
+       let [dateWithLowerTime, upperTimeString] = $(this).text().split('-');
+       const lowerTimeString = `${dateWithLowerTime.split(' ')[1]}:00`;
+       upperTimeString = `${upperTimeString.trimLeft()}:00`;
+       const lowerDatetime = new Date(`${convertedNowDateLocaleString}T${lowerTimeString}Z`);
+       const upperDatetime = new Date(`${convertedNowDateLocaleString}T${upperTimeString}Z`);
+       if (nowDatetime > lowerDatetime && nowDatetime < upperDatetime) {
+           return this;
+       }
+    });
 }
 
 function attendancePostQuery() {

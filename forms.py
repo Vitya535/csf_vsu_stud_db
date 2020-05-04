@@ -241,7 +241,7 @@ class CurriculumUnitCopyForm(Form):
         'Группы',
         get_pk=lambda g: g.id,
         get_label=lambda g: "%s %s%s" % (
-        g.num_print, g.specialty, " (%s)" % g.specialization if g.specialization else ""),
+            g.num_print, g.specialty, " (%s)" % g.specialization if g.specialization else ""),
         widget=ListWidget(prefix_label=False),
         option_widget=CheckboxInput()
     )
