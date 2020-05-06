@@ -14,6 +14,7 @@ from model import Student
 from model import Subject
 from model import TEACHING_LESSON_AND_CURRICULUM_UNIT
 from model import TeachingLesson
+from model import TeachingPairs
 
 
 def get_all_groups_by_semester(semester: int) -> list:
@@ -176,6 +177,7 @@ def get_lesson_dates_for_subject(subject_name: str, year: int, half_year: int) -
 
 
 def filter_students_attendance(students: list, subject_name: str) -> list:
+    """Фильтрация посещаемости студентов для более удобного вывода на страницу"""
     curriculum_unit = db.session.query(CurriculumUnit). \
         join(CurriculumUnit.subject). \
         filter(Subject.name == subject_name). \
@@ -198,6 +200,7 @@ def filter_students_attendance(students: list, subject_name: str) -> list:
 
 
 def get_teaching_pair_ids(subject_name: str) -> list:
+    """Получение списка id учебных пар по названию предмета"""
     curriculum_unit = db.session.query(CurriculumUnit). \
         join(CurriculumUnit.subject). \
         filter(Subject.name == subject_name). \
@@ -211,3 +214,49 @@ def get_teaching_pair_ids(subject_name: str) -> list:
         for teaching_pair in teaching_lesson.teaching_pairs:
             teaching_pair_ids.append(teaching_pair.pair_id)
     return teaching_pair_ids
+
+
+def get_all_teaching_lessons() -> list:
+    """Запрос для получения всех учебных занятий"""
+    teaching_lessons = db.session.query(TeachingLesson). \
+        all()
+    return teaching_lessons
+
+
+def get_all_lessons_beginning() -> list:
+    """Запрос для получения всех начал занятий"""
+    lessons_beginning = db.session.query(LessonsBeginning). \
+        all()
+    return lessons_beginning
+
+
+def get_all_teaching_pairs() -> list:
+    """Запрос для получения всех учебных пар"""
+    teaching_pairs = db.session.query(TeachingPairs). \
+        all()
+    return teaching_pairs
+
+
+def get_lesson_beginning_by_year_and_half_year(year: int, half_year: int) -> LessonsBeginning:
+    """Запрос для получения начала учебных занятий в конкретном году и полугодии"""
+    lesson_beginning = db.session.query(LessonsBeginning). \
+        filter(LessonsBeginning.year == year). \
+        filter(LessonsBeginning.half_year == half_year). \
+        one_or_none()
+    return lesson_beginning
+
+
+def get_teaching_pair_by_id(teaching_pair_id: int) -> TeachingPairs:
+    """Запрос для получения пары по id"""
+    teaching_pair = db.session.query(TeachingPairs). \
+        filter(TeachingPairs.pair_id == teaching_pair_id). \
+        one_or_none()
+    return teaching_pair
+
+
+def get_teaching_lesson_by_id(teaching_lesson_id: int) -> TeachingLesson:
+    """Запрос для получения учебного занятия по id"""
+    teaching_lesson = db.session.query(TeachingLesson). \
+        filter(TeachingLesson.teaching_lesson_id == teaching_lesson_id). \
+        one_or_none()
+    return teaching_lesson

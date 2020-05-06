@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Начало занятий</title>
+    {% include '_header.html' %}
+</head>
+<body>
+{% include '_menu.html' %}
+<div class="container">
+    <h2>Список начала занятий</h2>
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Учебный год/Полугодие</th>
+            <th>Дата начала занятий</th>
+            <th>Дата конца занятий</th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for lesson_beginning in all_lessons_beginning %}
+            <tr>
+                <td>
+                    <a href="{{ url_for('lesson_beginning', year=lesson_beginning.year, half_year=lesson_beginning.half_year) }}">{{ lesson_beginning.year }}/{{ lesson_beginning.half_year }}</a>
+                </td>
+                <td>{{ lesson_beginning.beginning_date }}</td>
+                <td>{{ lesson_beginning.end_date }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <div>
+        <a href="{{ url_for('lesson_beginning', year='new_year', half_year='new_half_year') }}" class="btn btn-primary">Добавить
+            начало занятий</a>
+    </div>
+</div>
+</body>
+</html>

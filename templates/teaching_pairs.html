@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Учебные пары</title>
+    {% include '_header.html' %}
+</head>
+<body>
+{% include '_menu.html' %}
+<div class="container">
+    <h2>Список учебных пар</h2>
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Номер пары</th>
+            <th>Время начала занятий</th>
+            <th>Время конца занятий</th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for teaching_pair in all_teaching_pairs %}
+            <tr>
+                <td><a href="{{ url_for('teaching_pair', teaching_pair_id=teaching_pair.pair_id) }}">{{ teaching_pair.pair_number }}</a></td>
+                <td>{{ teaching_pair.time_of_beginning }}</td>
+                <td>{{ teaching_pair.time_of_ending }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <div>
+        <a href="{{ url_for('teaching_pair', teaching_pair_id='new') }}" class="btn btn-primary">Добавить
+            учебную пару</a>
+    </div>
+</div>
+</body>
+</html>

@@ -1,15 +1,16 @@
 from datetime import datetime
 
 from wtforms import validators, Form, SubmitField, IntegerField, StringField, SelectField, HiddenField, PasswordField, \
-    FormField, BooleanField
+    FormField, BooleanField, DateField
 from wtforms.widgets import ListWidget, CheckboxInput
 from wtforms_alchemy import ModelForm, ModelFieldList, QuerySelectMultipleField
 from wtforms_alchemy.fields import QuerySelectField
 from wtforms_alchemy.validators import Unique
+from wtforms_components import TimeField
 
 from app_config import db
 from model import StudGroup, Subject, Teacher, Student, StudentStates, StudentStateDict, CurriculumUnit, AttMark, \
-    MarkTypes, MarkTypeDict, AdminUser
+    MarkTypes, MarkTypeDict, AdminUser, LessonsBeginning, TeachingPairs, TeachingLesson
 
 
 class _PersonForm:
@@ -150,6 +151,67 @@ class SubjectForm(ModelForm):
                                              validators.Length(min=3, max=Subject.name.property.columns[0].type.length),
                                              Unique(Subject.name, get_session=lambda: db.session,
                                                     message='Предмет с таким названием существует')])
+    button_save = SubmitField('Сохранить')
+    button_delete = SubmitField('Удалить')
+
+
+class LessonBeginningForm(ModelForm):
+    class Meta:
+        model = LessonsBeginning
+
+    year = IntegerField('Год обучения',
+                        [validators.DataRequired(),
+                         validators.NumberRange(min=2000, max=datetime.now().year + 1),
+                         Unique(LessonsBeginning.year, get_session=lambda: db.session,
+                                message='Начало занятий с таким учебным годом уже существует'),
+                         Unique(LessonsBeginning.half_year, get_session=lambda: db.session,
+                                message='Начало занятий с таким учебным годом уже существует')])
+    half_year = SelectField('Полугодие',
+                            [Unique(LessonsBeginning.half_year, get_session=lambda: db.session,
+                                    message='Начало занятий с таким полугодием уже существует'),
+                             Unique(LessonsBeginning.year, get_session=lambda: db.session,
+                                    message='Начало занятий с таким полугодием уже существует')],
+                            choices=[('1', 'Первое'), ('2', 'Второе')])
+    beginning_date = DateField('Начало занятий', [validators.DataRequired()])
+    end_date = DateField('Конец занятий', [validators.DataRequired()])
+
+    button_save = SubmitField('Сохранить')
+    button_delete = SubmitField('Удалить')
+
+
+class TeachingPairsForm(ModelForm):
+    class Meta:
+        model = TeachingPairs
+
+    pair_number = IntegerField('Номер пары',
+                               [validators.DataRequired(),
+                                validators.NumberRange(min=1, max=7)])
+    time_of_beginning = TimeField('Время начала пары', [validators.DataRequired()])
+    time_of_ending = TimeField('Время конца пары', [validators.DataRequired()])
+
+    button_save = SubmitField('Сохранить')
+    button_delete = SubmitField('Удалить')
+
+
+class TeachingLessonForm(ModelForm):
+    class Meta:
+        model = TeachingLesson
+
+    pair_number_denominator = IntegerField('Номер пары по знаменателю',
+                                           [validators.DataRequired(),
+                                            validators.NumberRange(min=1, max=7)])
+    day_number_denominator = IntegerField('Номер дня по знаменателю',
+                                          [validators.DataRequired(),
+                                           validators.NumberRange(min=1, max=7)])
+    pair_number_numerator = IntegerField('Номер пары по числителю',
+                                         [validators.DataRequired(),
+                                          validators.NumberRange(min=1, max=7)])
+    day_number_numerator = IntegerField('Номер дня по числителю',
+                                        [validators.DataRequired(),
+                                         validators.NumberRange(min=1, max=7)])
+    can_expose_group_leader = BooleanField('Выставляет посещаемость староста',
+                                           [validators.DataRequired()])
+
     button_save = SubmitField('Сохранить')
     button_delete = SubmitField('Удалить')
 
