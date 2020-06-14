@@ -859,9 +859,11 @@ def attendance():
         'subjects': subjects_from_units,
         'selected_group': group.to_dict(),
         'week_dates': current_and_next_week_text_dates,
-        'teaching_pair_ids': teaching_pair_ids
+        'teaching_pair_ids': teaching_pair_ids,
         # 'can_expose_group_leader': can_expose_group_leader_value
     }
+
+    print(common_context_values)
 
     if request.method == 'GET':
         return render_template('attendance.html',
@@ -921,9 +923,10 @@ def mark_attendance_by_student_card_number():
 
     student_with_card_number = get_student_by_card_number(card_number)
 
-    insert_or_update_attendance(student_with_card_number.id, teaching_pair_id, lesson_date, True)
+    print(student_with_card_number.to_dict())
 
     if student_with_card_number:
+        insert_or_update_attendance(student_with_card_number.id, teaching_pair_id, lesson_date, True)
         return jsonify(student_with_card_number.to_dict())
     else:
         return jsonify()
@@ -937,10 +940,11 @@ def teaching_lessons():
     return render_template('teaching_lessons.html', all_teaching_lessons=all_teaching_lessons)
 
 
-@app.route('/teaching_lesson/<teaching_lesson_id>')
+@app.route('/teaching_lesson/<teaching_lesson_id>', methods=['GET', 'POST'])
 @login_required
 def teaching_lesson(teaching_lesson_id):
     """Страничка с интерфейсом для редактирования конкретного учебного занятия"""
+    print()
     if current_user.role_name != 'AdminUser':
         return render_error(403)
     if teaching_lesson_id == 'new':
@@ -985,7 +989,7 @@ def teaching_pairs():
     return render_template('teaching_pairs.html', all_teaching_pairs=all_teaching_pairs)
 
 
-@app.route('/teaching_pair/<teaching_pair_id>')
+@app.route('/teaching_pair/<teaching_pair_id>', methods=['GET', 'POST'])
 @login_required
 def teaching_pair(teaching_pair_id):
     """Страничка с интерфейсом для редактирования конкретной учебной пары"""

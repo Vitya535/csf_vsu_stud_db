@@ -196,7 +196,7 @@ $('#card_number').on('keydown', function (e) {
 
         const nowDateIndex = $thWithLessonDate.index();
 
-        const teaching_pair_id = $thWithLessonDate.attr('data-teaching_pair_id')
+        const teaching_pair_id = $thWithLessonDate.attr('data-teaching_pair_id');
 
         const $tbody = $table.children('tbody');
         const cardNumberIndex = $tbody
@@ -216,6 +216,7 @@ $('#card_number').on('keydown', function (e) {
                 teaching_pair_id: teaching_pair_id
             },
             function (studentWithCardNumber) {
+                console.log(studentWithCardNumber);
                 if ($.isEmptyObject(studentWithCardNumber)) {
                     $.toast({
                         heading: 'Error',

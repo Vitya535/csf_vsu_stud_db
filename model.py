@@ -628,11 +628,11 @@ class Attendance(BaseModel):
                                  nullable=False)
 
     def __repr__(self):
-        return f"Attendance(attendance_teaching_lesson_id={self.attendance_id}," \
+        return f"Attendance(attendance_id={self.attendance_id}," \
                f" lesson_attendance={self.lesson_attendance}," \
                f" lesson_date={self.lesson_date}," \
                f" student_id={self.student_id})," \
-               f" teaching_lesson_id={self.teaching_pair_id}"
+               f" teaching_pair_id={self.teaching_pair_id}"
 
     def __init__(self, lesson_attendance, lesson_date, student_id, teaching_pair_id):
         self.lesson_attendance = lesson_attendance
@@ -672,7 +672,7 @@ class TeachingPairs(db.Model):
     time_of_beginning = db.Column(db.TIME, nullable=False)
     time_of_ending = db.Column(db.TIME, nullable=False)
 
-    teaching_lesson_id = db.Column(db.Integer, db.ForeignKey('teaching_lesson.teaching_lesson_id'), nullable=False)
+    teaching_lesson_id = db.Column(db.Integer, db.ForeignKey('teaching_lesson.teaching_lesson_id'))
     attendance = db.relationship('Attendance')
 
     def __repr__(self):

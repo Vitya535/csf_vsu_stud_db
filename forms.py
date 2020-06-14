@@ -161,15 +161,15 @@ class LessonBeginningForm(ModelForm):
 
     year = IntegerField('Год обучения',
                         [validators.DataRequired(),
-                         validators.NumberRange(min=2000, max=datetime.now().year + 1),
-                         Unique(LessonsBeginning.year, get_session=lambda: db.session,
-                                message='Начало занятий с таким учебным годом уже существует'),
-                         Unique(LessonsBeginning.half_year, get_session=lambda: db.session,
+                         validators.NumberRange(min=datetime.now().year - 20, max=datetime.now().year + 1,
+                                                message=f'Год обучения должен быть в диапазоне от '
+                                                        f'{datetime.now().year - 20} до {datetime.now().year + 1}'),
+                         Unique((LessonsBeginning.year, LessonsBeginning.half_year),
+                                get_session=lambda: db.session,
                                 message='Начало занятий с таким учебным годом уже существует')])
     half_year = SelectField('Полугодие',
-                            [Unique(LessonsBeginning.half_year, get_session=lambda: db.session,
-                                    message='Начало занятий с таким полугодием уже существует'),
-                             Unique(LessonsBeginning.year, get_session=lambda: db.session,
+                            [Unique((LessonsBeginning.year, LessonsBeginning.half_year),
+                                    get_session=lambda: db.session,
                                     message='Начало занятий с таким полугодием уже существует')],
                             choices=[('1', 'Первое'), ('2', 'Второе')])
     beginning_date = DateField('Начало занятий', [validators.DataRequired()])
@@ -185,7 +185,8 @@ class TeachingPairsForm(ModelForm):
 
     pair_number = IntegerField('Номер пары',
                                [validators.DataRequired(),
-                                validators.NumberRange(min=1, max=7)])
+                                validators.NumberRange(min=1, max=7,
+                                                       message='Номер пары должен быть в диапазоне от 1 до 7')])
     time_of_beginning = TimeField('Время начала пары', [validators.DataRequired()])
     time_of_ending = TimeField('Время конца пары', [validators.DataRequired()])
 
@@ -199,18 +200,21 @@ class TeachingLessonForm(ModelForm):
 
     pair_number_denominator = IntegerField('Номер пары по знаменателю',
                                            [validators.DataRequired(),
-                                            validators.NumberRange(min=1, max=7)])
+                                            validators.NumberRange(min=1, max=7,
+                                                                   message='Номер пары по знаменателю должен быть в диапазоне от 1 до 7')])
     day_number_denominator = IntegerField('Номер дня по знаменателю',
                                           [validators.DataRequired(),
-                                           validators.NumberRange(min=1, max=7)])
+                                           validators.NumberRange(min=1, max=7,
+                                                                  message='Номер дня по знаменателю должен быть в диапазоне от 1 до 7')])
     pair_number_numerator = IntegerField('Номер пары по числителю',
                                          [validators.DataRequired(),
-                                          validators.NumberRange(min=1, max=7)])
+                                          validators.NumberRange(min=1, max=7,
+                                                                 message='Номер пары по числителю должен быть в диапазоне от 1 до 7')])
     day_number_numerator = IntegerField('Номер дня по числителю',
                                         [validators.DataRequired(),
-                                         validators.NumberRange(min=1, max=7)])
-    can_expose_group_leader = BooleanField('Выставляет посещаемость староста',
-                                           [validators.DataRequired()])
+                                         validators.NumberRange(min=1, max=7,
+                                                                message='Номер дня по числителю должен быть в диапазоне от 1 до 7')])
+    can_expose_group_leader = BooleanField('Выставляет посещаемость староста')
 
     button_save = SubmitField('Сохранить')
     button_delete = SubmitField('Удалить')
