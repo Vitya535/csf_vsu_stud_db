@@ -960,6 +960,7 @@ def teaching_lesson(teaching_lesson_id):
 
     form = TeachingLessonForm(request.form if request.method == 'POST' else None,
                               obj=new_teaching_lesson)
+    print(new_teaching_lesson)
 
     if form.button_delete.data:
         form.validate()
@@ -975,7 +976,7 @@ def teaching_lesson(teaching_lesson_id):
         db.session.commit()
         if teaching_lesson_id == 'new':
             db.session.flush()
-            return redirect(url_for('teaching_lesson', teaching_lesson_id=teaching_lesson_id))
+            return redirect(url_for('teaching_lesson', teaching_lesson_id=new_teaching_lesson.teaching_lesson_id))
     return render_template('teaching_lesson.html',
                            form=form,
                            teaching_lesson=new_teaching_lesson)
@@ -1023,7 +1024,7 @@ def teaching_pair(teaching_pair_id):
         db.session.commit()
         if teaching_pair_id == 'new':
             db.session.flush()
-            return redirect(url_for('teaching_pair', teaching_pair_id=teaching_pair_id))
+            return redirect(url_for('teaching_pair', teaching_pair_id=new_teaching_pair.pair_id))
     return render_template('teaching_pair.html',
                            form=form,
                            teaching_pair=new_teaching_pair)
@@ -1034,6 +1035,7 @@ def teaching_pair(teaching_pair_id):
 def lessons_beginning():
     """Страничка с интерфейсом для редактирования списка начала занятий"""
     all_lessons_beginning = get_all_lessons_beginning()
+    print(all_lessons_beginning)
     return render_template('lessons_beginning.html', all_lessons_beginning=all_lessons_beginning)
 
 
@@ -1057,6 +1059,7 @@ def lesson_beginning(year, half_year):
 
     form = LessonBeginningForm(request.form if request.method == 'POST' else None,
                                obj=lesson_beginning_with_year_and_half_year)
+    print(lesson_beginning_with_year_and_half_year)
 
     if form.button_delete.data:
         form.validate()
@@ -1074,7 +1077,7 @@ def lesson_beginning(year, half_year):
             db.session.flush()
             return redirect(url_for('lesson_beginning',
                                     year=lesson_beginning_with_year_and_half_year.year,
-                                    half_year=lesson_beginning_with_year_and_half_year.half_year))
+                                    half_year=lesson_beginning_with_year_and_half_year.half_year.value))
     return render_template('lesson_beginning.html',
                            form=form,
                            lesson_beginning=lesson_beginning_with_year_and_half_year)

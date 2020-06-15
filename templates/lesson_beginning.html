@@ -11,7 +11,7 @@
 <div class="container">
     <h2>Начало занятий</h2>
     {% if lesson_beginning.year and lesson_beginning.half_year %}
-        <h3>{{ lesson_beginning.year }}/{{ lesson_beginning.half_year }}</h3>
+        <h3>{{ lesson_beginning.year }}/{{ lesson_beginning.half_year.value }}</h3>
     {% endif %}
     <form method="post">
         {% autoescape false %}

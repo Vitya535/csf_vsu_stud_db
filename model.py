@@ -1,9 +1,9 @@
-from enum import Enum
-
 from flask import json
 from sqlalchemy.orm.attributes import QueryableAttribute
 
 from app_config import db
+from utils import HalfYearEnum
+from utils import LessonType
 
 # Типы
 StudentStates = ("study", "alumnus", "expelled", "academic_leave")
@@ -577,13 +577,6 @@ class AttMark(db.Model):
 # for stud_attendance
 
 
-class LessonType(Enum):
-    """Перечисление для типа занятий"""
-    lection = 'lection'
-    practice = 'practice'
-    seminar = 'seminar'
-
-
 class TeachingLesson(db.Model):
     """Класс для сущности 'Учебное занятие'"""
     __tablename__ = 'teaching_lesson'
@@ -641,18 +634,12 @@ class Attendance(BaseModel):
         self.teaching_pair_id = teaching_pair_id
 
 
-# class HalfYearEnum(Enum):
-#     """Перечисление для типа занятий"""
-#     first_half_year = 1
-#     second_half_year = 2
-
-
 class LessonsBeginning(db.Model):
     """Класс для сущности 'Начало занятий'"""
     __tablename__ = 'lessons_beginning'
 
     year = db.Column(db.INTEGER, nullable=False, primary_key=True)
-    half_year = db.Column(db.INTEGER, nullable=False, primary_key=True)
+    half_year = db.Column(db.Enum(HalfYearEnum), nullable=False, primary_key=True)
     beginning_date = db.Column(db.DATE, nullable=False)
     end_date = db.Column(db.DATE, nullable=False)
 
