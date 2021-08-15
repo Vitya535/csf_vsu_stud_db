@@ -33,6 +33,7 @@ from orm_db_actions import update_can_expose_group_leader_attr_by_teaching_lesso
 from orm_db_actions import delete_record_from_table
 from password_checker import password_checker
 from json import loads
+from sqlalchemy.exc import IntegrityError
 
 # flask-login
 login_manager = LoginManager()
@@ -975,12 +976,17 @@ def teaching_lesson(teaching_lesson_id):
                               obj=new_teaching_lesson)
 
     if form.button_save.data and form.validate():
-        form.populate_obj(new_teaching_lesson)
-        db.session.add(new_teaching_lesson)
-        db.session.commit()
+        for _ in range(form.objects_count.data):
+            try:
+                new_teaching_lesson = TeachingLesson()
+                form.populate_obj(new_teaching_lesson)
+                db.session.add(new_teaching_lesson)
+                db.session.commit()
+            except IntegrityError:
+                db.session.rollback()
         if teaching_lesson_id == 'new':
             db.session.flush()
-            return redirect(url_for('teaching_lesson', teaching_lesson_id=new_teaching_lesson.teaching_lesson_id))
+            return redirect(url_for('teaching_lessons'))
     return render_template('teaching_lesson.html',
                            form=form,
                            teaching_lesson=new_teaching_lesson)
@@ -1018,12 +1024,17 @@ def teaching_pair(teaching_pair_id):
                              obj=new_teaching_pair)
 
     if form.button_save.data and form.validate():
-        form.populate_obj(new_teaching_pair)
-        db.session.add(new_teaching_pair)
-        db.session.commit()
+        for _ in range(form.objects_count.data):
+            try:
+                new_teaching_pair = TeachingPairs()
+                form.populate_obj(new_teaching_pair)
+                db.session.add(new_teaching_pair)
+                db.session.commit()
+            except IntegrityError:
+                db.session.rollback()
         if teaching_pair_id == 'new':
             db.session.flush()
-            return redirect(url_for('teaching_pair', teaching_pair_id=new_teaching_pair.pair_id))
+            return redirect(url_for('teaching_pairs'))
     return render_template('teaching_pair.html',
                            form=form,
                            teaching_pair=new_teaching_pair)
@@ -1062,14 +1073,17 @@ def lesson_beginning(year, half_year):
                                obj=lesson_beginning_with_year_and_half_year)
 
     if form.button_save.data and form.validate():
-        form.populate_obj(lesson_beginning_with_year_and_half_year)
-        db.session.add(lesson_beginning_with_year_and_half_year)
-        db.session.commit()
+        for _ in range(form.objects_count.data):
+            try:
+                lesson_beginning_with_year_and_half_year = LessonsBeginning()
+                form.populate_obj(lesson_beginning_with_year_and_half_year)
+                db.session.add(lesson_beginning_with_year_and_half_year)
+                db.session.commit()
+            except IntegrityError:
+                db.session.rollback()
         if year == 'new_year' and half_year == 'new_half_year':
             db.session.flush()
-            return redirect(url_for('lesson_beginning',
-                                    year=lesson_beginning_with_year_and_half_year.year,
-                                    half_year=lesson_beginning_with_year_and_half_year.half_year.value))
+            return redirect(url_for('lessons_beginning'))
     return render_template('lesson_beginning.html',
                            form=form,
                            lesson_beginning=lesson_beginning_with_year_and_half_year)

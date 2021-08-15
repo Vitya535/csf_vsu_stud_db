@@ -290,8 +290,13 @@ class LessonBeginningForm(ModelForm):
     beginning_date = DateField('Начало занятий', [validators.DataRequired()])
     end_date = DateField('Конец занятий', [validators.DataRequired()])
 
+    objects_count = IntegerField('Количество обьектов',
+                                 [validators.DataRequired(),
+                                  validators.NumberRange(min=1,
+                                                         message='Количество обьектов должно быть больше нуля!')],
+                                 default=1)
+
     button_save = SubmitField('Сохранить')
-    button_delete = SubmitField('Удалить')
 
 
 class TeachingPairsForm(ModelForm):
@@ -305,8 +310,13 @@ class TeachingPairsForm(ModelForm):
     time_of_beginning = TimeField('Время начала пары', [validators.DataRequired()])
     time_of_ending = TimeField('Время конца пары', [validators.DataRequired()])
 
+    objects_count = IntegerField('Количество обьектов',
+                                 [validators.DataRequired(),
+                                  validators.NumberRange(min=1,
+                                                         message='Количество обьектов должно быть больше нуля!')],
+                                 default=1)
+
     button_save = SubmitField('Сохранить')
-    button_delete = SubmitField('Удалить')
 
 
 class TeachingLessonForm(ModelForm):
@@ -335,5 +345,10 @@ class TeachingLessonForm(ModelForm):
                                        ('practice', LessonType.practice.value),
                                        ('seminar', LessonType.seminar.value)])
 
+    objects_count = IntegerField('Количество обьектов',
+                                 [validators.DataRequired(),
+                                  validators.NumberRange(min=1,
+                                                         message='Количество обьектов должно быть больше нуля!')],
+                                 default=1)
+
     button_save = SubmitField('Сохранить')
-    button_delete = SubmitField('Удалить')
