@@ -591,7 +591,8 @@ class TeachingLesson(db.Model):
 
     lesson_type = db.Column(db.Enum(LessonType), nullable=False)
 
-    curriculum_units = db.relationship('CurriculumUnit', secondary='teaching_lesson_and_curriculum_unit')
+    curriculum_units = db.relationship('CurriculumUnit', secondary='teaching_lesson_and_curriculum_unit',
+                                       overlaps="teaching_lessons")
     teaching_pairs = db.relationship('TeachingPairs')
 
     def __repr__(self):

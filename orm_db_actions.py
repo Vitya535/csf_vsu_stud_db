@@ -4,6 +4,7 @@ from datetime import datetime
 
 from sqlalchemy import between
 from sqlalchemy import func
+from sqlalchemy.inspection import inspect
 
 from app import db
 from model import Attendance
@@ -15,6 +16,8 @@ from model import Subject
 from model import TEACHING_LESSON_AND_CURRICULUM_UNIT
 from model import TeachingLesson
 from model import TeachingPairs
+
+RECORDS_PER_PAGE = 10
 
 
 def get_all_groups_by_semester(semester: int) -> list:
@@ -216,24 +219,44 @@ def get_teaching_pair_ids(subject_name: str) -> list:
     return teaching_pair_ids
 
 
-def get_all_teaching_lessons() -> list:
-    """Запрос для получения всех учебных занятий"""
+def delete_record_from_table(table_name: str, all_ids: list):
+    """Удаление из таблицы одной или нескольких записей"""
+    table_names_dict = {'lessons_beginning': LessonsBeginning,
+                        'teaching_pairs': TeachingPairs,
+                        'teaching_lesson': TeachingLesson}
+    class_table = table_names_dict.get(table_name)
+    for ids_to_delete in all_ids:
+        ids_to_delete_with_keys = tuple(zip(ids_to_delete, inspect(class_table).primary_key))
+        record = db.session.query(class_table)
+        for id_to_delete_with_key in ids_to_delete_with_keys:
+            record = record.filter(
+                class_table.__getattribute__(
+                    class_table, id_to_delete_with_key[1].name) == int(id_to_delete_with_key[0])
+            )
+        record = record.one_or_none()
+        db.session.delete(record)
+        db.session.commit()
+        db.session.flush()
+
+
+def get_teaching_lessons_on_page(page: int):
+    """Запрос для получения учебных занятий на конкретной странице"""
     teaching_lessons = db.session.query(TeachingLesson). \
-        all()
+        paginate(page, RECORDS_PER_PAGE, False)
     return teaching_lessons
 
 
-def get_all_lessons_beginning() -> list:
-    """Запрос для получения всех начал занятий"""
+def get_lessons_beginning_on_page(page: int):
+    """Запрос для получения начал занятий на конкретной странице"""
     lessons_beginning = db.session.query(LessonsBeginning). \
-        all()
+        paginate(page, RECORDS_PER_PAGE, False)
     return lessons_beginning
 
 
-def get_all_teaching_pairs() -> list:
-    """Запрос для получения всех учебных пар"""
+def get_teaching_pairs_on_page(page: int):
+    """Запрос для получения учебных пар на конкретной странице"""
     teaching_pairs = db.session.query(TeachingPairs). \
-        all()
+        paginate(page, RECORDS_PER_PAGE, False)
     return teaching_pairs
 
 

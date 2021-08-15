@@ -21,9 +21,6 @@
         {{ bootstrap_form_input(form.day_number_numerator) }}
         {{ bootstrap_form_input(form.can_expose_group_leader) }}
         {{ bootstrap_form_input(form.lesson_type) }}
-        {% if teaching_lesson.teaching_lesson_id %}
-            {{ bootstrap_form_button(form.button_delete, class_="btn btn-danger") }}
-        {% endif %}
         {{ bootstrap_form_button(form.button_save, class_="btn btn-success") }}
         {% endautoescape %}
     </form>

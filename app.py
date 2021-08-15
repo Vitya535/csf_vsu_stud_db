@@ -13,24 +13,26 @@ from model import StudGroup, Subject, Teacher, Student, CurriculumUnit, Curricul
     Person, LessonType, LessonsBeginning, TeachingPairs, TeachingLesson
 from orm_db_actions import filter_students_attendance
 from orm_db_actions import get_all_groups_by_semester
-from orm_db_actions import get_all_lessons_beginning
-from orm_db_actions import get_all_teaching_lessons
-from orm_db_actions import get_all_teaching_pairs
 from orm_db_actions import get_current_half_year
 from orm_db_actions import get_curriculum_units_by_group_id_and_lesson_type
 from orm_db_actions import get_group_by_semester_and_group_number
 from orm_db_actions import get_group_of_current_user_by_id
 from orm_db_actions import get_lesson_beginning_by_year_and_half_year
 from orm_db_actions import get_lesson_dates_for_subject
+from orm_db_actions import get_lessons_beginning_on_page
 from orm_db_actions import get_student_by_card_number
 from orm_db_actions import get_student_by_id_and_fio
 from orm_db_actions import get_teaching_lesson_by_id
 from orm_db_actions import get_teaching_lesson_id_by_subject_name
+from orm_db_actions import get_teaching_lessons_on_page
 from orm_db_actions import get_teaching_pair_by_id
 from orm_db_actions import get_teaching_pair_ids
+from orm_db_actions import get_teaching_pairs_on_page
 from orm_db_actions import insert_or_update_attendance
 from orm_db_actions import update_can_expose_group_leader_attr_by_teaching_lesson_id
+from orm_db_actions import delete_record_from_table
 from password_checker import password_checker
+from json import loads
 
 # flask-login
 login_manager = LoginManager()
@@ -932,11 +934,23 @@ def mark_attendance_by_student_card_number():
         return jsonify()
 
 
-@app.route('/teaching_lessons')
+@app.route('/delete_record', methods=['POST'])
+def delete_record():
+    """Удаление одной или нескольких записей из таблицы"""
+    table_name = request.values.get('table_name')
+    ids_to_delete = loads(request.values.get('ids_to_delete'))
+    delete_record_from_table(table_name, ids_to_delete)
+    return jsonify()
+
+
+@app.route('/teaching_lessons', methods=['GET', 'POST'])
+@app.route('/teaching_lessons/<int:page>', methods=['GET', 'POST'])
 @login_required
-def teaching_lessons():
+def teaching_lessons(page=1):
     """Страничка с интерфейсом для редактирования учебных занятий"""
-    all_teaching_lessons = get_all_teaching_lessons()
+    if current_user.role_name != 'AdminUser':
+        return render_error(403)
+    all_teaching_lessons = get_teaching_lessons_on_page(page)
     return render_template('teaching_lessons.html', all_teaching_lessons=all_teaching_lessons)
 
 
@@ -944,7 +958,6 @@ def teaching_lessons():
 @login_required
 def teaching_lesson(teaching_lesson_id):
     """Страничка с интерфейсом для редактирования конкретного учебного занятия"""
-    print()
     if current_user.role_name != 'AdminUser':
         return render_error(403)
     if teaching_lesson_id == 'new':
@@ -960,15 +973,6 @@ def teaching_lesson(teaching_lesson_id):
 
     form = TeachingLessonForm(request.form if request.method == 'POST' else None,
                               obj=new_teaching_lesson)
-    print(new_teaching_lesson)
-
-    if form.button_delete.data:
-        form.validate()
-        if not len(form.button_delete.errors):
-            db.session.delete(new_teaching_lesson)
-            db.session.commit()
-            db.session.flush()
-            return redirect(url_for('teaching_lessons'))
 
     if form.button_save.data and form.validate():
         form.populate_obj(new_teaching_lesson)
@@ -982,11 +986,14 @@ def teaching_lesson(teaching_lesson_id):
                            teaching_lesson=new_teaching_lesson)
 
 
-@app.route('/teaching_pairs')
+@app.route('/teaching_pairs', methods=['GET', 'POST'])
+@app.route('/teaching_pairs/<int:page>', methods=['GET', 'POST'])
 @login_required
-def teaching_pairs():
+def teaching_pairs(page=1):
     """Страничка с интерфейсом для редактирования учебных пар"""
-    all_teaching_pairs = get_all_teaching_pairs()
+    if current_user.role_name != 'AdminUser':
+        return render_error(403)
+    all_teaching_pairs = get_teaching_pairs_on_page(page)
     return render_template('teaching_pairs.html', all_teaching_pairs=all_teaching_pairs)
 
 
@@ -1010,14 +1017,6 @@ def teaching_pair(teaching_pair_id):
     form = TeachingPairsForm(request.form if request.method == 'POST' else None,
                              obj=new_teaching_pair)
 
-    if form.button_delete.data:
-        form.validate()
-        if not len(form.button_delete.errors):
-            db.session.delete(new_teaching_pair)
-            db.session.commit()
-            db.session.flush()
-            return redirect(url_for('teaching_pairs'))
-
     if form.button_save.data and form.validate():
         form.populate_obj(new_teaching_pair)
         db.session.add(new_teaching_pair)
@@ -1030,12 +1029,14 @@ def teaching_pair(teaching_pair_id):
                            teaching_pair=new_teaching_pair)
 
 
-@app.route('/lessons_beginning')
+@app.route('/lessons_beginning', methods=['GET', 'POST'])
+@app.route('/lessons_beginning/<int:page>', methods=['GET', 'POST'])
 @login_required
-def lessons_beginning():
+def lessons_beginning(page=1):
     """Страничка с интерфейсом для редактирования списка начала занятий"""
-    all_lessons_beginning = get_all_lessons_beginning()
-    print(all_lessons_beginning)
+    if current_user.role_name != 'AdminUser':
+        return render_error(403)
+    all_lessons_beginning = get_lessons_beginning_on_page(page)
     return render_template('lessons_beginning.html', all_lessons_beginning=all_lessons_beginning)
 
 
@@ -1059,15 +1060,6 @@ def lesson_beginning(year, half_year):
 
     form = LessonBeginningForm(request.form if request.method == 'POST' else None,
                                obj=lesson_beginning_with_year_and_half_year)
-    print(lesson_beginning_with_year_and_half_year)
-
-    if form.button_delete.data:
-        form.validate()
-        if not len(form.button_delete.errors):
-            db.session.delete(lesson_beginning_with_year_and_half_year)
-            db.session.commit()
-            db.session.flush()
-            return redirect(url_for('lessons_beginning'))
 
     if form.button_save.data and form.validate():
         form.populate_obj(lesson_beginning_with_year_and_half_year)

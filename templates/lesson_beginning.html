@@ -19,9 +19,6 @@
         {{ bootstrap_form_input(form.half_year) }}
         {{ bootstrap_form_input(form.beginning_date) }}
         {{ bootstrap_form_input(form.end_date) }}
-        {% if lesson_beginning.year and lesson_beginning.half_year %}
-            {{ bootstrap_form_button(form.button_delete, class_="btn btn-danger") }}
-        {% endif %}
         {{ bootstrap_form_button(form.button_save, class_="btn btn-success") }}
         {% endautoescape %}
     </form>

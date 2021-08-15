@@ -18,9 +18,6 @@
         {{ bootstrap_form_input(form.pair_number) }}
         {{ bootstrap_form_input(form.time_of_beginning) }}
         {{ bootstrap_form_input(form.time_of_ending) }}
-        {% if teaching_pair.pair_id %}
-            {{ bootstrap_form_button(form.button_delete, class_="btn btn-danger") }}
-        {% endif %}
         {{ bootstrap_form_button(form.button_save, class_="btn btn-success") }}
         {% endautoescape %}
     </form>
