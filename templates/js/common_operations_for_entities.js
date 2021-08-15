@@ -16,15 +16,11 @@ $(document).ready(function () {
                 ['/teaching_lessons', 'teaching_lesson'],
                 [`/teaching_lessons/${val}`, 'teaching_lesson']
             ]);
-            const a_tags = $(checkboxesForOperations).closest('tr')
-                .find('td:eq(1)')
-                .children('a');
+            const a_tags = $(checkboxesForOperations).closest('tr').find('td:eq(1) > a');
             let ids_to_delete = [];
             for (let a_tag of a_tags)
             {
-                let record_ids = $(a_tag).attr('href').split('/');
-                record_ids.shift();
-                record_ids.shift();
+                let record_ids = $(a_tag).attr('href').split('/').slice(2);
                 ids_to_delete.push(record_ids);
             }
             $.post('/delete_record',
