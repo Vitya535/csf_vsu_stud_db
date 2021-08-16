@@ -68,9 +68,7 @@ def get_current_half_year(year_of_study: int) -> int:
 
 def get_group_of_current_user_by_id(stud_group_id: int) -> StudGroup:
     """Запрос для нахождения группы по id"""
-    current_user_group = db.session.query(StudGroup). \
-        filter(StudGroup.id == stud_group_id). \
-        first()
+    current_user_group = db.session.query(StudGroup).get(stud_group_id)
     return current_user_group
 
 
@@ -101,6 +99,7 @@ def get_student_by_id_and_fio(semester: int, group_id: int, student_name: str, s
 
 def insert_or_update_attendance(student_id: int, teaching_pair_id: int, lesson_date, lesson_attendance: bool):
     """Апдейт или вставка новой ячейки посещаемости по определенной дате для студента с конкретным предметом"""
+    # ToDo - db.session.merge здесь попробовать как-нибудь аккуратно
     attendance = db.session.query(Attendance). \
         filter(Attendance.student_id == student_id). \
         filter(Attendance.teaching_pair_id == teaching_pair_id). \
@@ -129,9 +128,7 @@ def update_can_expose_group_leader_attr_by_teaching_lesson_id(teaching_lesson_id
 
 def get_attr_can_expose_group_leader_by_teaching_lesson_id(teaching_lesson_id: int) -> bool:
     """Получение атрибута can_expose_group_leader учебного занятия по его id"""
-    teaching_lesson = db.session.query(TeachingLesson). \
-        filter(TeachingLesson.teaching_lesson_id == teaching_lesson_id). \
-        first()
+    teaching_lesson = db.session.query(TeachingLesson).get(teaching_lesson_id)
     return teaching_lesson.can_expose_group_leader
 
 
@@ -153,10 +150,7 @@ def get_lesson_dates_for_subject(subject_name: str, year: int, half_year: int) -
         join(TeachingLesson.curriculum_units). \
         filter(CurriculumUnit.id == curriculum_unit.id). \
         all()
-    lessons_beginning = db.session.query(LessonsBeginning). \
-        filter(LessonsBeginning.year == year). \
-        filter(LessonsBeginning.half_year == half_year). \
-        first()
+    lessons_beginning = db.session.query(LessonsBeginning).get((year, half_year))
     datetime_now = datetime.now()
     current_week_number = datetime_now.isocalendar()[1]
     beginning_week_number = lessons_beginning.beginning_date.isocalendar()[1]
@@ -239,47 +233,37 @@ def delete_record_from_table(table_name: str, all_ids: list):
         db.session.flush()
 
 
-def get_teaching_lessons_on_page(page: int):
+def get_teaching_lessons_on_page(page: int) -> list:
     """Запрос для получения учебных занятий на конкретной странице"""
-    teaching_lessons = db.session.query(TeachingLesson). \
-        paginate(page, RECORDS_PER_PAGE, False)
+    teaching_lessons = db.session.query(TeachingLesson).paginate(page, RECORDS_PER_PAGE, False)
     return teaching_lessons
 
 
-def get_lessons_beginning_on_page(page: int):
+def get_lessons_beginning_on_page(page: int) -> list:
     """Запрос для получения начал занятий на конкретной странице"""
-    lessons_beginning = db.session.query(LessonsBeginning). \
-        paginate(page, RECORDS_PER_PAGE, False)
+    lessons_beginning = db.session.query(LessonsBeginning).paginate(page, RECORDS_PER_PAGE, False)
     return lessons_beginning
 
 
-def get_teaching_pairs_on_page(page: int):
+def get_teaching_pairs_on_page(page: int) -> list:
     """Запрос для получения учебных пар на конкретной странице"""
-    teaching_pairs = db.session.query(TeachingPairs). \
-        paginate(page, RECORDS_PER_PAGE, False)
+    teaching_pairs = db.session.query(TeachingPairs).paginate(page, RECORDS_PER_PAGE, False)
     return teaching_pairs
 
 
 def get_lesson_beginning_by_year_and_half_year(year: int, half_year: int) -> LessonsBeginning:
     """Запрос для получения начала учебных занятий в конкретном году и полугодии"""
-    lesson_beginning = db.session.query(LessonsBeginning). \
-        filter(LessonsBeginning.year == year). \
-        filter(LessonsBeginning.half_year == half_year). \
-        one_or_none()
+    lesson_beginning = db.session.query(LessonsBeginning).get((year, half_year))
     return lesson_beginning
 
 
 def get_teaching_pair_by_id(teaching_pair_id: int) -> TeachingPairs:
     """Запрос для получения пары по id"""
-    teaching_pair = db.session.query(TeachingPairs). \
-        filter(TeachingPairs.pair_id == teaching_pair_id). \
-        one_or_none()
+    teaching_pair = db.session.query(TeachingPairs).get(teaching_pair_id)
     return teaching_pair
 
 
 def get_teaching_lesson_by_id(teaching_lesson_id: int) -> TeachingLesson:
     """Запрос для получения учебного занятия по id"""
-    teaching_lesson = db.session.query(TeachingLesson). \
-        filter(TeachingLesson.teaching_lesson_id == teaching_lesson_id). \
-        one_or_none()
+    teaching_lesson = db.session.query(TeachingLesson).get(teaching_lesson_id)
     return teaching_lesson

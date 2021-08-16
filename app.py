@@ -1,9 +1,11 @@
 import os
 from datetime import datetime
+from json import loads
 
 from flask import request, render_template, redirect, url_for, send_from_directory, jsonify
 from flask_login import LoginManager, login_required, login_user, logout_user, current_user
 from sqlalchemy import not_
+from sqlalchemy.exc import IntegrityError
 
 from app_config import app, db
 from forms import StudGroupForm, StudentForm, StudentSearchForm, SubjectForm, TeacherForm, CurriculumUnitForm, \
@@ -11,6 +13,7 @@ from forms import StudGroupForm, StudentForm, StudentSearchForm, SubjectForm, Te
 from forms import StudentsUnallocatedForm, LessonBeginningForm, TeachingPairsForm, TeachingLessonForm
 from model import StudGroup, Subject, Teacher, Student, CurriculumUnit, CurriculumUnitUnion, AttMark, AdminUser, \
     Person, LessonType, LessonsBeginning, TeachingPairs, TeachingLesson
+from orm_db_actions import delete_record_from_table
 from orm_db_actions import filter_students_attendance
 from orm_db_actions import get_all_groups_by_semester
 from orm_db_actions import get_current_half_year
@@ -30,10 +33,7 @@ from orm_db_actions import get_teaching_pair_ids
 from orm_db_actions import get_teaching_pairs_on_page
 from orm_db_actions import insert_or_update_attendance
 from orm_db_actions import update_can_expose_group_leader_attr_by_teaching_lesson_id
-from orm_db_actions import delete_record_from_table
 from password_checker import password_checker
-from json import loads
-from sqlalchemy.exc import IntegrityError
 
 # flask-login
 login_manager = LoginManager()
@@ -944,8 +944,8 @@ def delete_record():
     return jsonify()
 
 
-@app.route('/teaching_lessons', methods=['GET', 'POST'])
-@app.route('/teaching_lessons/<int:page>', methods=['GET', 'POST'])
+@app.route('/teaching_lessons')
+@app.route('/teaching_lessons/<int:page>')
 @login_required
 def teaching_lessons(page=1):
     """Страничка с интерфейсом для редактирования учебных занятий"""
@@ -976,14 +976,13 @@ def teaching_lesson(teaching_lesson_id):
                               obj=new_teaching_lesson)
 
     if form.button_save.data and form.validate():
-        for _ in range(form.objects_count.data):
-            try:
-                new_teaching_lesson = TeachingLesson()
-                form.populate_obj(new_teaching_lesson)
-                db.session.add(new_teaching_lesson)
-                db.session.commit()
-            except IntegrityError:
-                db.session.rollback()
+        form.populate_obj(new_teaching_lesson)
+        teaching_lessons_to_add = (new_teaching_lesson,) * form.objects_count.data
+        db.session.bulk_save_objects(teaching_lessons_to_add)
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
         if teaching_lesson_id == 'new':
             db.session.flush()
             return redirect(url_for('teaching_lessons'))
@@ -992,8 +991,8 @@ def teaching_lesson(teaching_lesson_id):
                            teaching_lesson=new_teaching_lesson)
 
 
-@app.route('/teaching_pairs', methods=['GET', 'POST'])
-@app.route('/teaching_pairs/<int:page>', methods=['GET', 'POST'])
+@app.route('/teaching_pairs')
+@app.route('/teaching_pairs/<int:page>')
 @login_required
 def teaching_pairs(page=1):
     """Страничка с интерфейсом для редактирования учебных пар"""
@@ -1024,14 +1023,13 @@ def teaching_pair(teaching_pair_id):
                              obj=new_teaching_pair)
 
     if form.button_save.data and form.validate():
-        for _ in range(form.objects_count.data):
-            try:
-                new_teaching_pair = TeachingPairs()
-                form.populate_obj(new_teaching_pair)
-                db.session.add(new_teaching_pair)
-                db.session.commit()
-            except IntegrityError:
-                db.session.rollback()
+        form.populate_obj(new_teaching_pair)
+        teaching_pairs_to_add = (new_teaching_pair,) * form.objects_count.data
+        db.session.bulk_save_objects(teaching_pairs_to_add)
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
         if teaching_pair_id == 'new':
             db.session.flush()
             return redirect(url_for('teaching_pairs'))
@@ -1040,8 +1038,8 @@ def teaching_pair(teaching_pair_id):
                            teaching_pair=new_teaching_pair)
 
 
-@app.route('/lessons_beginning', methods=['GET', 'POST'])
-@app.route('/lessons_beginning/<int:page>', methods=['GET', 'POST'])
+@app.route('/lessons_beginning')
+@app.route('/lessons_beginning/<int:page>')
 @login_required
 def lessons_beginning(page=1):
     """Страничка с интерфейсом для редактирования списка начала занятий"""
@@ -1073,14 +1071,13 @@ def lesson_beginning(year, half_year):
                                obj=lesson_beginning_with_year_and_half_year)
 
     if form.button_save.data and form.validate():
-        for _ in range(form.objects_count.data):
-            try:
-                lesson_beginning_with_year_and_half_year = LessonsBeginning()
-                form.populate_obj(lesson_beginning_with_year_and_half_year)
-                db.session.add(lesson_beginning_with_year_and_half_year)
-                db.session.commit()
-            except IntegrityError:
-                db.session.rollback()
+        form.populate_obj(lesson_beginning_with_year_and_half_year)
+        lessons_beginning_to_add = (lesson_beginning_with_year_and_half_year,) * form.objects_count.data
+        db.session.bulk_save_objects(lessons_beginning_to_add)
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
         if year == 'new_year' and half_year == 'new_half_year':
             db.session.flush()
             return redirect(url_for('lessons_beginning'))
