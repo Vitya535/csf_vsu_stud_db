@@ -45,13 +45,13 @@
 
 {% block pagination %}
     {% if all_lessons_beginning.has_prev %}
-        <a href="{{ url_for('teaching_lessons', page = all_lessons_beginning.prev_num) }}"><< Previous page</a>
+        <a href="{{ url_for('lessons_beginning', page = all_lessons_beginning.prev_num) }}"><< Previous page</a>
     {% else %}
         << Previous page
     {% endif %}
     |
     {% if all_lessons_beginning.has_next %}
-        <a href="{{ url_for('teaching_lessons', page = all_lessons_beginning.next_num) }}">Next page >></a>
+        <a href="{{ url_for('lessons_beginning', page = all_lessons_beginning.next_num) }}">Next page >></a>
     {% else %}
         Next page >>
     {% endif %}
