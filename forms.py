@@ -303,6 +303,17 @@ class LessonBeginningForm(MainForm):
     beginning_date = DateField('Начало занятий', (validators.DataRequired(),))
     end_date = DateField('Конец занятий', (validators.DataRequired(),))
 
+    def validate(self):
+        rv = Form.validate(self)
+        if not rv:
+            return False
+
+        if self.beginning_date.data < self.end_date.data:
+            return True
+        self.beginning_date.errors.append('Начало занятий не должно быть больше или равно времени конца занятий!')
+        self.end_date.errors.append('Конец занятий не должно быть меньше или равно времени начала занятий!')
+        return False
+
     def __iter__(self):
         fields = tuple(super(MainForm, self).__iter__())
         return (get_field(field_id, fields) for field_id in self.__order)
@@ -322,7 +333,7 @@ class TeachingPairsForm(MainForm):
     time_of_ending = TimeField('Время конца пары', (validators.DataRequired(),))
 
     def validate(self):
-        rv = LessonBeginningForm.validate(self)
+        rv = Form.validate(self)
         if not rv:
             return False
 
