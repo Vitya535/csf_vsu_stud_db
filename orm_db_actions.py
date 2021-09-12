@@ -4,6 +4,8 @@ from datetime import datetime
 
 from sqlalchemy import between
 from sqlalchemy import func
+from sqlalchemy import tuple_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.inspection import inspect
 
 from app import db
@@ -14,7 +16,7 @@ from model import StudGroup
 from model import Student
 from model import Subject
 from model import TEACHING_LESSON_AND_CURRICULUM_UNIT
-from model import TeachingLesson
+from model import TeachingLessons
 from model import TeachingPairs
 
 RECORDS_PER_PAGE = 10
@@ -49,7 +51,7 @@ def get_curriculum_units_by_group_id_and_lesson_type(group_id: int, lesson_type:
     curriculum_units = db.session.query(CurriculumUnit). \
         join(CurriculumUnit.teaching_lessons). \
         filter(CurriculumUnit.stud_group_id == group_id). \
-        filter(TeachingLesson.lesson_type == lesson_type). \
+        filter(TeachingLessons.lesson_type == lesson_type). \
         all()
     return curriculum_units
 
@@ -100,35 +102,41 @@ def get_student_by_id_and_fio(semester: int, group_id: int, student_name: str, s
 def insert_or_update_attendance(student_id: int, teaching_pair_id: int, lesson_date, lesson_attendance: bool):
     """Апдейт или вставка новой ячейки посещаемости по определенной дате для студента с конкретным предметом"""
     # ToDo - db.session.merge здесь попробовать как-нибудь аккуратно
-    attendance = db.session.query(Attendance). \
-        filter(Attendance.student_id == student_id). \
-        filter(Attendance.teaching_pair_id == teaching_pair_id). \
-        filter(Attendance.lesson_date == lesson_date). \
-        first()
-    if not attendance:
-        attendance = Attendance(lesson_attendance, lesson_date, student_id, teaching_pair_id)
-        db.session.add(attendance)
-    else:
-        db.session.query(Attendance). \
+    try:
+        attendance = db.session.query(Attendance). \
             filter(Attendance.student_id == student_id). \
             filter(Attendance.teaching_pair_id == teaching_pair_id). \
             filter(Attendance.lesson_date == lesson_date). \
-            update({'lesson_attendance': lesson_attendance})
-    db.session.commit()
+            first()
+        if not attendance:
+            attendance = Attendance(lesson_attendance, lesson_date, student_id, teaching_pair_id)
+            db.session.add(attendance)
+        else:
+            db.session.query(Attendance). \
+                filter(Attendance.student_id == student_id). \
+                filter(Attendance.teaching_pair_id == teaching_pair_id). \
+                filter(Attendance.lesson_date == lesson_date). \
+                update({'lesson_attendance': lesson_attendance})
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
 
 
 def update_can_expose_group_leader_attr_by_teaching_lesson_id(teaching_lesson_id: int,
                                                               can_expose_group_leader_value: bool):
     """Апдейт атрибута can_expose_group_leader для учебного занятия по его id"""
-    db.session.query(TeachingLesson). \
-        filter(TeachingLesson.teaching_lesson_id == teaching_lesson_id). \
-        update({'can_expose_group_leader': can_expose_group_leader_value})
-    db.session.commit()
+    try:
+        db.session.query(TeachingLessons). \
+            filter(TeachingLessons.teaching_lesson_id == teaching_lesson_id). \
+            update({'can_expose_group_leader': can_expose_group_leader_value})
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
 
 
 def get_attr_can_expose_group_leader_by_teaching_lesson_id(teaching_lesson_id: int) -> bool:
     """Получение атрибута can_expose_group_leader учебного занятия по его id"""
-    teaching_lesson = db.session.query(TeachingLesson).get(teaching_lesson_id)
+    teaching_lesson = db.session.query(TeachingLessons).get(teaching_lesson_id)
     return teaching_lesson.can_expose_group_leader
 
 
@@ -146,8 +154,8 @@ def get_lesson_dates_for_subject(subject_name: str, year: int, half_year: int) -
         join(CurriculumUnit.subject). \
         filter(Subject.name == subject_name). \
         first()
-    teaching_lessons = db.session.query(TeachingLesson). \
-        join(TeachingLesson.curriculum_units). \
+    teaching_lessons = db.session.query(TeachingLessons). \
+        join(TeachingLessons.curriculum_units). \
         filter(CurriculumUnit.id == curriculum_unit.id). \
         all()
     lessons_beginning = db.session.query(LessonsBeginning).get((year, half_year))
@@ -179,8 +187,8 @@ def filter_students_attendance(students: list, subject_name: str) -> list:
         join(CurriculumUnit.subject). \
         filter(Subject.name == subject_name). \
         first()
-    teaching_lessons = db.session.query(TeachingLesson). \
-        join(TeachingLesson.curriculum_units). \
+    teaching_lessons = db.session.query(TeachingLessons). \
+        join(TeachingLessons.curriculum_units). \
         filter(CurriculumUnit.id == curriculum_unit.id). \
         all()
     for student in students:
@@ -202,8 +210,8 @@ def get_teaching_pair_ids(subject_name: str) -> list:
         join(CurriculumUnit.subject). \
         filter(Subject.name == subject_name). \
         first()
-    teaching_lessons = db.session.query(TeachingLesson). \
-        join(TeachingLesson.curriculum_units). \
+    teaching_lessons = db.session.query(TeachingLessons). \
+        join(TeachingLessons.curriculum_units). \
         filter(CurriculumUnit.id == curriculum_unit.id). \
         all()
     teaching_pair_ids = []
@@ -215,27 +223,53 @@ def get_teaching_pair_ids(subject_name: str) -> list:
 
 def delete_record_from_table(table_name: str, all_ids: list):
     """Удаление из таблицы одной или нескольких записей"""
+    try:
+        table_names_dict = {'lessons_beginning': LessonsBeginning,
+                            'teaching_pairs': TeachingPairs,
+                            'teaching_lessons': TeachingLessons}
+        class_table = table_names_dict.get(table_name)
+        all_ids = tuple(tuple(map(int, item)) for item in all_ids)
+        db.session.query(class_table).filter(tuple_(*inspect(class_table).primary_key).in_(all_ids)).delete()
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+    db.session.flush()
+
+
+def get_object_for_form_filling(table_name: str, all_ids: list) -> [LessonsBeginning, TeachingLessons, TeachingPairs]:
+    """Получение обьекта для заполнения полей формы для multiple редаткирования"""
     table_names_dict = {'lessons_beginning': LessonsBeginning,
                         'teaching_pairs': TeachingPairs,
-                        'teaching_lesson': TeachingLesson}
+                        'teaching_lessons': TeachingLessons}
     class_table = table_names_dict.get(table_name)
-    for ids_to_delete in all_ids:
-        ids_to_delete_with_keys = tuple(zip(ids_to_delete, inspect(class_table).primary_key))
-        record = db.session.query(class_table)
-        for id_to_delete_with_key in ids_to_delete_with_keys:
-            record = record.filter(
-                class_table.__getattribute__(
-                    class_table, id_to_delete_with_key[1].name) == int(id_to_delete_with_key[0])
-            )
-        record = record.one_or_none()
-        db.session.delete(record)
+    record_for_multiple_edit = class_table()
+    all_ids = tuple(tuple(map(int, item)) for item in all_ids)
+    records_from_db = db.session.query(class_table).filter(tuple_(*inspect(class_table).primary_key).in_(all_ids)).all()
+    if len(records_from_db):
+        return records_from_db[0]
+    for column in class_table.__table__.columns:
+        records_from_db_set = set(getattr(record, column.name) for record in records_from_db)
+        if len(records_from_db_set):
+            setattr(record_for_multiple_edit, column.name, records_from_db_set.pop())
+    return record_for_multiple_edit
+
+
+def multiple_edit_records(object_from_form_data: [LessonsBeginning, TeachingLessons, TeachingPairs], ids_to_edit: list):
+    """Редактирование нескольких записей в таблице"""
+    try:
+        record_class = type(object_from_form_data)
+        ids_to_edit = tuple(tuple(map(int, item)) for item in ids_to_edit)
+        edit_query = db.session.query(record_class).filter(tuple_(*inspect(record_class).primary_key).in_(ids_to_edit))
+        attrs_and_values_for_update = object_from_form_data.get_attrs_and_values_for_update()
+        edit_query.update(attrs_and_values_for_update)
         db.session.commit()
-        db.session.flush()
+    except IntegrityError:
+        db.session.rollback()
 
 
 def get_teaching_lessons_on_page(page: int) -> list:
     """Запрос для получения учебных занятий на конкретной странице"""
-    teaching_lessons = db.session.query(TeachingLesson).paginate(page, RECORDS_PER_PAGE, False)
+    teaching_lessons = db.session.query(TeachingLessons).paginate(page, RECORDS_PER_PAGE, False)
     return teaching_lessons
 
 
@@ -263,7 +297,7 @@ def get_teaching_pair_by_id(teaching_pair_id: int) -> TeachingPairs:
     return teaching_pair
 
 
-def get_teaching_lesson_by_id(teaching_lesson_id: int) -> TeachingLesson:
+def get_teaching_lesson_by_id(teaching_lesson_id: int) -> TeachingLessons:
     """Запрос для получения учебного занятия по id"""
-    teaching_lesson = db.session.query(TeachingLesson).get(teaching_lesson_id)
+    teaching_lesson = db.session.query(TeachingLessons).get(teaching_lesson_id)
     return teaching_lesson

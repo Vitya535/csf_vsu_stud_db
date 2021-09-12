@@ -15,14 +15,23 @@
     {% endif %}
     <form method="post">
         {% autoescape false %}
-        {{ bootstrap_form_input(form.pair_number_denominator) }}
-        {{ bootstrap_form_input(form.day_number_denominator) }}
-        {{ bootstrap_form_input(form.pair_number_numerator) }}
-        {{ bootstrap_form_input(form.day_number_numerator) }}
-        {{ bootstrap_form_input(form.can_expose_group_leader) }}
-        {{ bootstrap_form_input(form.lesson_type) }}
-        {{ bootstrap_form_input(form.objects_count) }}
-        {{ bootstrap_form_button(form.button_save, class_="btn btn-success") }}
+            {% if teaching_lesson_id == 'new' %}
+                {% for field in form %}
+                    {% if field.type != 'SubmitField' %}
+                        {{ bootstrap_form_input(field) }}
+                    {% else %}
+                        {{ bootstrap_form_button(field) }}
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+                {% for field in form if field.name != 'objects_count' %}
+                    {% if field.type != 'SubmitField' %}
+                        {{ bootstrap_form_input(field) }}
+                    {% else %}
+                        {{ bootstrap_form_button(field) }}
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
         {% endautoescape %}
     </form>
 </div>

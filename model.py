@@ -25,7 +25,7 @@ MarkTypeDict = {
 # Связующая таблица для единиц учебного плана и учебных занятий
 TEACHING_LESSON_AND_CURRICULUM_UNIT = db.Table('teaching_lesson_and_curriculum_unit', db.metadata,
                                                db.Column('teaching_lesson_id', db.Integer,
-                                                         db.ForeignKey('teaching_lesson.teaching_lesson_id',
+                                                         db.ForeignKey('teaching_lessons.teaching_lesson_id',
                                                                        ondelete="CASCADE",
                                                                        onupdate="CASCADE")),
                                                db.Column('curriculum_unit_id', db.Integer,
@@ -333,7 +333,7 @@ class CurriculumUnit(db.Model, _CurriculumUnit):
     subject = db.relationship('Subject')
     teacher = db.relationship('Teacher')
     att_marks = db.relationship('AttMark', lazy=True, backref='curriculum_unit')
-    teaching_lessons = db.relationship('TeachingLesson', secondary='teaching_lesson_and_curriculum_unit')
+    teaching_lessons = db.relationship('TeachingLessons', secondary='teaching_lesson_and_curriculum_unit')
 
     def __repr__(self):
         return f"CurriculumUnit(id={self.id}, " \
@@ -577,9 +577,9 @@ class AttMark(db.Model):
 # for stud_attendance
 
 
-class TeachingLesson(db.Model):
+class TeachingLessons(db.Model):
     """Класс для сущности 'Учебное занятие'"""
-    __tablename__ = 'teaching_lesson'
+    __tablename__ = 'teaching_lessons'
 
     teaching_lesson_id = db.Column(db.INTEGER, primary_key=True, autoincrement=True)
 
@@ -596,13 +596,27 @@ class TeachingLesson(db.Model):
     teaching_pairs = db.relationship('TeachingPairs')
 
     def __repr__(self):
-        return f"TeachingLesson(teaching_lesson_id={self.teaching_lesson_id}," \
+        return f"TeachingLessons(teaching_lesson_id={self.teaching_lesson_id}," \
                f" pair_number_numerator={self.pair_number_numerator}," \
                f" day_number_numerator={self.day_number_numerator}," \
                f" pair_number_denominator={self.pair_number_denominator}," \
                f" day_number_denominator={self.day_number_denominator}," \
                f" can_expose_group_leader={self.can_expose_group_leader}," \
                f" lesson_type={self.lesson_type})"
+
+    def __init__(self, pair_number_numerator=None, day_number_numerator=None, pair_number_denominator=None,
+                 day_number_denominator=None, can_expose_group_leader=None, lesson_type=None):
+        self.pair_number_numerator = pair_number_numerator
+        self.day_number_numerator = day_number_numerator
+        self.pair_number_denominator = pair_number_denominator
+        self.day_number_denominator = day_number_denominator
+        self.can_expose_group_leader = can_expose_group_leader
+        self.lesson_type = lesson_type
+
+    def get_attrs_and_values_for_update(self):
+        return dict((self.pair_number_numerator, self.day_number_numerator,
+                     self.pair_number_denominator, self.day_number_denominator,
+                     self.can_expose_group_leader, self.lesson_type))
 
 
 class Attendance(BaseModel):
@@ -650,6 +664,15 @@ class LessonsBeginning(db.Model):
                f" beginning_date={self.beginning_date}," \
                f" end_date={self.end_date})"
 
+    def __init__(self, year=None, half_year=None, beginning_date=None, end_date=None):
+        self.year = year
+        self.half_year = half_year
+        self.beginning_date = beginning_date
+        self.end_date = end_date
+
+    def get_attrs_and_values_for_update(self):
+        return dict((self.year, self.half_year, self.beginning_date, self.end_date))
+
 
 class TeachingPairs(db.Model):
     """Класс для сущности 'Учебные пары'"""
@@ -660,7 +683,7 @@ class TeachingPairs(db.Model):
     time_of_beginning = db.Column(db.TIME, nullable=False)
     time_of_ending = db.Column(db.TIME, nullable=False)
 
-    teaching_lesson_id = db.Column(db.Integer, db.ForeignKey('teaching_lesson.teaching_lesson_id'))
+    teaching_lesson_id = db.Column(db.Integer, db.ForeignKey('teaching_lessons.teaching_lesson_id'))
     attendance = db.relationship('Attendance')
 
     def __repr__(self):
@@ -668,3 +691,11 @@ class TeachingPairs(db.Model):
                f" pair_number={self.pair_number}," \
                f" time_of_beginning={self.time_of_beginning}," \
                f" time_of_ending={self.time_of_ending})"
+
+    def __init__(self, pair_number=None, time_of_beginning=None, time_of_ending=None):
+        self.pair_number = pair_number
+        self.time_of_beginning = time_of_beginning
+        self.time_of_ending = time_of_ending
+
+    def get_attrs_and_values_for_update(self):
+        return dict((self.pair_number, self.time_of_beginning, self.time_of_ending))

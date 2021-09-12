@@ -10,10 +10,10 @@ from wtforms_components import TimeField
 
 from app_config import db
 from model import StudGroup, Subject, Teacher, Student, StudentStates, StudentStateDict, CurriculumUnit, AttMark, \
-    MarkTypes, MarkTypeDict, AdminUser, LessonsBeginning, TeachingPairs, TeachingLesson
-
-from utils import LessonType
+    MarkTypes, MarkTypeDict, AdminUser, LessonsBeginning, TeachingPairs, TeachingLessons
 from utils import HalfYearEnum
+from utils import LessonType
+from utils import get_field
 
 
 class _PersonForm:
@@ -269,86 +269,103 @@ class LoginForm(Form):
     button_login = SubmitField('Вход')
 
 
-class LessonBeginningForm(ModelForm):
+# code for attendance
+
+class MainForm(ModelForm):
+    objects_count = IntegerField('Количество обьектов',
+                                 (validators.DataRequired(),
+                                  validators.NumberRange(min=1,
+                                                         message='Количество обьектов должно быть больше нуля!')),
+                                 default=1)
+    button_save = SubmitField('Сохранить')
+
+
+class LessonBeginningForm(MainForm):
     class Meta:
         model = LessonsBeginning
 
+    __order = ('year', 'half_year', 'beginning_date', 'end_date', 'objects_count', 'button_save')
+
     year = IntegerField('Год обучения',
-                        [validators.DataRequired(),
+                        (validators.DataRequired(),
                          validators.NumberRange(min=datetime.now().year - 20, max=datetime.now().year + 1,
                                                 message=f'Год обучения должен быть в диапазоне от '
                                                         f'{datetime.now().year - 20} до {datetime.now().year + 1}'),
                          Unique((LessonsBeginning.year, LessonsBeginning.half_year),
                                 get_session=lambda: db.session,
-                                message='Начало занятий с таким учебным годом уже существует')])
+                                message='Начало занятий с таким учебным годом уже существует')))
     half_year = SelectField('Полугодие',
-                            [Unique((LessonsBeginning.year, LessonsBeginning.half_year),
+                            (Unique((LessonsBeginning.year, LessonsBeginning.half_year),
                                     get_session=lambda: db.session,
-                                    message='Начало занятий с таким полугодием уже существует')],
-                            choices=[('first_half_year', 'Первое'),
-                                     ('second_half_year', 'Второе')])
-    beginning_date = DateField('Начало занятий', [validators.DataRequired()])
-    end_date = DateField('Конец занятий', [validators.DataRequired()])
+                                    message='Начало занятий с таким полугодием уже существует'),),
+                            choices=((HalfYearEnum.first_half_year.name, 'Первое'),
+                                     (HalfYearEnum.second_half_year.name, 'Второе')))
+    beginning_date = DateField('Начало занятий', (validators.DataRequired(),))
+    end_date = DateField('Конец занятий', (validators.DataRequired(),))
 
-    objects_count = IntegerField('Количество обьектов',
-                                 [validators.DataRequired(),
-                                  validators.NumberRange(min=1,
-                                                         message='Количество обьектов должно быть больше нуля!')],
-                                 default=1)
-
-    button_save = SubmitField('Сохранить')
+    def __iter__(self):
+        fields = tuple(super(MainForm, self).__iter__())
+        return (get_field(field_id, fields) for field_id in self.__order)
 
 
-class TeachingPairsForm(ModelForm):
+class TeachingPairsForm(MainForm):
     class Meta:
         model = TeachingPairs
 
+    __order = ('pair_number', 'time_of_beginning', 'time_of_ending', 'objects_count', 'button_save')
+
     pair_number = IntegerField('Номер пары',
-                               [validators.DataRequired(),
+                               (validators.DataRequired(),
                                 validators.NumberRange(min=1, max=7,
-                                                       message='Номер пары должен быть в диапазоне от 1 до 7')])
-    time_of_beginning = TimeField('Время начала пары', [validators.DataRequired()])
-    time_of_ending = TimeField('Время конца пары', [validators.DataRequired()])
+                                                       message='Номер пары должен быть в диапазоне от 1 до 7')))
+    time_of_beginning = TimeField('Время начала пары', (validators.DataRequired(),))
+    time_of_ending = TimeField('Время конца пары', (validators.DataRequired(),))
 
-    objects_count = IntegerField('Количество обьектов',
-                                 [validators.DataRequired(),
-                                  validators.NumberRange(min=1,
-                                                         message='Количество обьектов должно быть больше нуля!')],
-                                 default=1)
+    def validate(self):
+        rv = LessonBeginningForm.validate(self)
+        if not rv:
+            return False
 
-    button_save = SubmitField('Сохранить')
+        if self.time_of_beginning.data < self.time_of_ending.data:
+            return True
+        self.time_of_beginning.errors.append('Время начала пары не должно быть больше или равно времени конца пары!')
+        self.time_of_ending.errors.append('Время конца пары не должно быть меньше или равно времени начала пары!')
+        return False
+
+    def __iter__(self):
+        fields = tuple(super(MainForm, self).__iter__())
+        return (get_field(field_id, fields) for field_id in self.__order)
 
 
-class TeachingLessonForm(ModelForm):
+class TeachingLessonForm(MainForm):
     class Meta:
-        model = TeachingLesson
+        model = TeachingLessons
+
+    __order = ('pair_number_denominator', 'day_number_denominator', 'pair_number_numerator',
+               'day_number_numerator', 'can_expose_group_leader', 'lesson_type', 'objects_count', 'button_save')
 
     pair_number_denominator = IntegerField('Номер пары по знаменателю',
-                                           [validators.DataRequired(),
+                                           (validators.DataRequired(),
                                             validators.NumberRange(min=1, max=7,
-                                                                   message='Номер пары по знаменателю должен быть в диапазоне от 1 до 7')])
+                                                                   message='Номер пары по знаменателю должен быть в диапазоне от 1 до 7')))
     day_number_denominator = IntegerField('Номер дня по знаменателю',
-                                          [validators.DataRequired(),
+                                          (validators.DataRequired(),
                                            validators.NumberRange(min=1, max=7,
-                                                                  message='Номер дня по знаменателю должен быть в диапазоне от 1 до 7')])
+                                                                  message='Номер дня по знаменателю должен быть в диапазоне от 1 до 7')))
     pair_number_numerator = IntegerField('Номер пары по числителю',
-                                         [validators.DataRequired(),
+                                         (validators.DataRequired(),
                                           validators.NumberRange(min=1, max=7,
-                                                                 message='Номер пары по числителю должен быть в диапазоне от 1 до 7')])
+                                                                 message='Номер пары по числителю должен быть в диапазоне от 1 до 7')))
     day_number_numerator = IntegerField('Номер дня по числителю',
-                                        [validators.DataRequired(),
+                                        (validators.DataRequired(),
                                          validators.NumberRange(min=1, max=7,
-                                                                message='Номер дня по числителю должен быть в диапазоне от 1 до 7')])
+                                                                message='Номер дня по числителю должен быть в диапазоне от 1 до 7')))
     can_expose_group_leader = BooleanField('Выставляет посещаемость староста')
     lesson_type = SelectField('Тип занятия',
-                              choices=[('lection', LessonType.lection.value),
+                              choices=(('lection', LessonType.lection.value),
                                        ('practice', LessonType.practice.value),
-                                       ('seminar', LessonType.seminar.value)])
+                                       ('seminar', LessonType.seminar.value)))
 
-    objects_count = IntegerField('Количество обьектов',
-                                 [validators.DataRequired(),
-                                  validators.NumberRange(min=1,
-                                                         message='Количество обьектов должно быть больше нуля!')],
-                                 default=1)
-
-    button_save = SubmitField('Сохранить')
+    def __iter__(self):
+        fields = tuple(super(MainForm, self).__iter__())
+        return (get_field(field_id, fields) for field_id in self.__order)

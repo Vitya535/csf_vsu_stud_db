@@ -1,8 +1,10 @@
 import os
 from datetime import datetime
+from itertools import islice
+from json import dumps
 from json import loads
 
-from flask import request, render_template, redirect, url_for, send_from_directory, jsonify
+from flask import request, render_template, redirect, url_for, send_from_directory, jsonify, session
 from flask_login import LoginManager, login_required, login_user, logout_user, current_user
 from sqlalchemy import not_
 from sqlalchemy.exc import IntegrityError
@@ -12,7 +14,7 @@ from forms import StudGroupForm, StudentForm, StudentSearchForm, SubjectForm, Te
     CurriculumUnitCopyForm, CurriculumUnitUnionForm, CurriculumUnitAddAppendStudGroupForm, AdminUserForm, LoginForm
 from forms import StudentsUnallocatedForm, LessonBeginningForm, TeachingPairsForm, TeachingLessonForm
 from model import StudGroup, Subject, Teacher, Student, CurriculumUnit, CurriculumUnitUnion, AttMark, AdminUser, \
-    Person, LessonType, LessonsBeginning, TeachingPairs, TeachingLesson
+    Person, LessonType, LessonsBeginning, TeachingPairs, TeachingLessons
 from orm_db_actions import delete_record_from_table
 from orm_db_actions import filter_students_attendance
 from orm_db_actions import get_all_groups_by_semester
@@ -23,6 +25,7 @@ from orm_db_actions import get_group_of_current_user_by_id
 from orm_db_actions import get_lesson_beginning_by_year_and_half_year
 from orm_db_actions import get_lesson_dates_for_subject
 from orm_db_actions import get_lessons_beginning_on_page
+from orm_db_actions import get_object_for_form_filling
 from orm_db_actions import get_student_by_card_number
 from orm_db_actions import get_student_by_id_and_fio
 from orm_db_actions import get_teaching_lesson_by_id
@@ -32,8 +35,10 @@ from orm_db_actions import get_teaching_pair_by_id
 from orm_db_actions import get_teaching_pair_ids
 from orm_db_actions import get_teaching_pairs_on_page
 from orm_db_actions import insert_or_update_attendance
+from orm_db_actions import multiple_edit_records
 from orm_db_actions import update_can_expose_group_leader_attr_by_teaching_lesson_id
 from password_checker import password_checker
+from utils import HalfYearEnum
 
 # flask-login
 login_manager = LoginManager()
@@ -866,8 +871,6 @@ def attendance():
         # 'can_expose_group_leader': can_expose_group_leader_value
     }
 
-    print(common_context_values)
-
     if request.method == 'GET':
         return render_template('attendance.html',
                                **common_context_values,
@@ -920,13 +923,11 @@ def update_is_groupleader_mark_attendance():
 @app.route('/mark_by_card_number', methods=['POST'])
 def mark_attendance_by_student_card_number():
     """Отметка посещения студента занятием по номеру его карты"""
-    card_number = int(request.form['card_number'])
+    card_number = request.form.get('card_number', type=int)
     lesson_date = datetime.strptime(request.values.get('lesson_date'), '%d.%m.%Y').strftime('%Y-%m-%d')
     teaching_pair_id = request.values.get('teaching_pair_id', type=int)
 
     student_with_card_number = get_student_by_card_number(card_number)
-
-    print(student_with_card_number.to_dict())
 
     if student_with_card_number:
         insert_or_update_attendance(student_with_card_number.id, teaching_pair_id, lesson_date, True)
@@ -947,7 +948,7 @@ def delete_record():
 @app.route('/teaching_lessons')
 @app.route('/teaching_lessons/<int:page>')
 @login_required
-def teaching_lessons(page=1):
+def teaching_lessons(page: int = 1):
     """Страничка с интерфейсом для редактирования учебных занятий"""
     if current_user.role_name != 'AdminUser':
         return render_error(403)
@@ -957,12 +958,12 @@ def teaching_lessons(page=1):
 
 @app.route('/teaching_lesson/<teaching_lesson_id>', methods=['GET', 'POST'])
 @login_required
-def teaching_lesson(teaching_lesson_id):
+def teaching_lesson(teaching_lesson_id: [int, str]):
     """Страничка с интерфейсом для редактирования конкретного учебного занятия"""
     if current_user.role_name != 'AdminUser':
         return render_error(403)
     if teaching_lesson_id == 'new':
-        new_teaching_lesson = TeachingLesson()
+        new_teaching_lesson = TeachingLessons()
     else:
         try:
             teaching_lesson_id = int(teaching_lesson_id)
@@ -988,13 +989,14 @@ def teaching_lesson(teaching_lesson_id):
             return redirect(url_for('teaching_lessons'))
     return render_template('teaching_lesson.html',
                            form=form,
-                           teaching_lesson=new_teaching_lesson)
+                           teaching_lesson=new_teaching_lesson,
+                           teaching_lesson_id=teaching_lesson_id)
 
 
 @app.route('/teaching_pairs')
 @app.route('/teaching_pairs/<int:page>')
 @login_required
-def teaching_pairs(page=1):
+def teaching_pairs(page: int = 1):
     """Страничка с интерфейсом для редактирования учебных пар"""
     if current_user.role_name != 'AdminUser':
         return render_error(403)
@@ -1004,7 +1006,7 @@ def teaching_pairs(page=1):
 
 @app.route('/teaching_pair/<teaching_pair_id>', methods=['GET', 'POST'])
 @login_required
-def teaching_pair(teaching_pair_id):
+def teaching_pair(teaching_pair_id: [int, str]):
     """Страничка с интерфейсом для редактирования конкретной учебной пары"""
     if current_user.role_name != 'AdminUser':
         return render_error(403)
@@ -1035,13 +1037,14 @@ def teaching_pair(teaching_pair_id):
             return redirect(url_for('teaching_pairs'))
     return render_template('teaching_pair.html',
                            form=form,
-                           teaching_pair=new_teaching_pair)
+                           teaching_pair=new_teaching_pair,
+                           teaching_pair_id=teaching_pair_id)
 
 
 @app.route('/lessons_beginning')
 @app.route('/lessons_beginning/<int:page>')
 @login_required
-def lessons_beginning(page=1):
+def lessons_beginning(page: int = 1):
     """Страничка с интерфейсом для редактирования списка начала занятий"""
     if current_user.role_name != 'AdminUser':
         return render_error(403)
@@ -1051,7 +1054,7 @@ def lessons_beginning(page=1):
 
 @app.route('/lesson_beginning/<year>/<half_year>', methods=['GET', 'POST'])
 @login_required
-def lesson_beginning(year, half_year):
+def lesson_beginning(year: [int, str], half_year: [int, str]):
     """Страничка для конкретного начала занятий"""
     if current_user.role_name != 'AdminUser':
         return render_error(403)
@@ -1083,7 +1086,39 @@ def lesson_beginning(year, half_year):
             return redirect(url_for('lessons_beginning'))
     return render_template('lesson_beginning.html',
                            form=form,
-                           lesson_beginning=lesson_beginning_with_year_and_half_year)
+                           lesson_beginning=lesson_beginning_with_year_and_half_year,
+                           year=year,
+                           half_year=half_year)
+
+
+@app.route('/handle_data_for_multiple_edit', methods=['POST'])
+def handle_data_for_multiple_edit():
+    session['table_name'] = request.values.get('table_name')
+    session['ids_to_edit'] = loads(request.values.get('ids_to_edit'))
+    return dumps({'success': True}), 200, {'ContentType': 'application/json'}
+
+
+@app.route('/multiple_edit', methods=['GET', 'POST'])
+def multiple_edit():
+    titles_dict = {'lessons_beginning': 'Начало занятий',
+                   'teaching_pairs': 'Учебная пара',
+                   'teaching_lessons': 'Учебное занятие'}
+    forms_dict = {'lessons_beginning': LessonBeginningForm,
+                  'teaching_pairs': TeachingPairsForm,
+                  'teaching_lessons': TeachingLessonForm}
+    table_name = session.get('table_name')
+    ids_to_edit = session.get('ids_to_edit')
+    title = titles_dict.get(table_name)
+    class_form = forms_dict.get(table_name)
+    record_for_multiple_edit = get_object_for_form_filling(table_name, ids_to_edit)
+    form = class_form(request.form if request.method == 'POST' else None, obj=record_for_multiple_edit)
+    if request.method == 'POST':
+        if form.button_save.data and form.validate():
+            class_table = class_form.Meta.model
+            object_from_form_data = class_table(*islice(form.data.items(), 2, len(form.data.items())))
+            multiple_edit_records(object_from_form_data, ids_to_edit)
+            return redirect(url_for(table_name))
+    return render_template('multiple_edit.html', title=title, form=form)
 
 
 if __name__ == '__main__':
