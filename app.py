@@ -817,7 +817,7 @@ app.register_error_handler(404, lambda code: render_error(404))
 
 # stud_attendance
 
-@app.route("/attendance", methods=['GET', 'POST'])
+@app.route("/attendance", methods=('GET', 'POST'))
 def attendance():
     """Веб-страничка для отображения посещаемости"""
 
@@ -878,7 +878,7 @@ def attendance():
     return jsonify(**common_context_values)
 
 
-@app.route("/mark_attendance", methods=['POST'])
+@app.route("/mark_attendance", methods=('POST',))
 def mark_attendance_for_student():
     """Урл для отметки посещаемости у студента"""
 
@@ -907,7 +907,7 @@ def mark_attendance_for_student():
     return jsonify()
 
 
-@app.route("/update_is_groupleader_mark_attendance", methods=['POST'])
+@app.route("/update_is_groupleader_mark_attendance", methods=('POST',))
 def update_is_groupleader_mark_attendance():
     """Урл, нужный для того, чтобы проапдейтить значение can_expose_group_leader для учебного занятия"""
     can_expose_group_leader_value = request.values.get('can_expose_group_leader_value', type=bool)
@@ -920,7 +920,7 @@ def update_is_groupleader_mark_attendance():
     return jsonify()
 
 
-@app.route('/mark_by_card_number', methods=['POST'])
+@app.route('/mark_by_card_number', methods=('POST',))
 def mark_attendance_by_student_card_number():
     """Отметка посещения студента занятием по номеру его карты"""
     card_number = request.form.get('card_number', type=int)
@@ -936,7 +936,7 @@ def mark_attendance_by_student_card_number():
         return jsonify()
 
 
-@app.route('/delete_record', methods=['POST'])
+@app.route('/delete_record', methods=('POST',))
 def delete_record():
     """Удаление одной или нескольких записей из таблицы"""
     table_name = request.values.get('table_name')
@@ -956,7 +956,7 @@ def teaching_lessons(page: int = 1):
     return render_template('teaching_lessons.html', all_teaching_lessons=all_teaching_lessons)
 
 
-@app.route('/teaching_lesson/<teaching_lesson_id>', methods=['GET', 'POST'])
+@app.route('/teaching_lesson/<teaching_lesson_id>', methods=('GET', 'POST'))
 @login_required
 def teaching_lesson(teaching_lesson_id: [int, str]):
     """Страничка с интерфейсом для редактирования конкретного учебного занятия"""
@@ -989,8 +989,7 @@ def teaching_lesson(teaching_lesson_id: [int, str]):
             return redirect(url_for('teaching_lessons'))
     return render_template('teaching_lesson.html',
                            form=form,
-                           teaching_lesson=new_teaching_lesson,
-                           teaching_lesson_id=teaching_lesson_id)
+                           teaching_lesson=new_teaching_lesson)
 
 
 @app.route('/teaching_pairs')
@@ -1004,7 +1003,7 @@ def teaching_pairs(page: int = 1):
     return render_template('teaching_pairs.html', all_teaching_pairs=all_teaching_pairs)
 
 
-@app.route('/teaching_pair/<teaching_pair_id>', methods=['GET', 'POST'])
+@app.route('/teaching_pair/<teaching_pair_id>', methods=('GET', 'POST'))
 @login_required
 def teaching_pair(teaching_pair_id: [int, str]):
     """Страничка с интерфейсом для редактирования конкретной учебной пары"""
@@ -1037,8 +1036,7 @@ def teaching_pair(teaching_pair_id: [int, str]):
             return redirect(url_for('teaching_pairs'))
     return render_template('teaching_pair.html',
                            form=form,
-                           teaching_pair=new_teaching_pair,
-                           teaching_pair_id=teaching_pair_id)
+                           teaching_pair=new_teaching_pair)
 
 
 @app.route('/lessons_beginning')
@@ -1052,7 +1050,7 @@ def lessons_beginning(page: int = 1):
     return render_template('lessons_beginning.html', all_lessons_beginning=all_lessons_beginning)
 
 
-@app.route('/lesson_beginning/<year>/<half_year>', methods=['GET', 'POST'])
+@app.route('/lesson_beginning/<year>/<half_year>', methods=('GET', 'POST'))
 @login_required
 def lesson_beginning(year: [int, str], half_year: [int, str]):
     """Страничка для конкретного начала занятий"""
@@ -1086,19 +1084,17 @@ def lesson_beginning(year: [int, str], half_year: [int, str]):
             return redirect(url_for('lessons_beginning'))
     return render_template('lesson_beginning.html',
                            form=form,
-                           lesson_beginning=lesson_beginning_with_year_and_half_year,
-                           year=year,
-                           half_year=half_year)
+                           lesson_beginning=lesson_beginning_with_year_and_half_year)
 
 
-@app.route('/handle_data_for_multiple_edit', methods=['POST'])
+@app.route('/handle_data_for_multiple_edit', methods=('POST',))
 def handle_data_for_multiple_edit():
     session['table_name'] = request.values.get('table_name')
     session['ids_to_edit'] = loads(request.values.get('ids_to_edit'))
     return dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
 
-@app.route('/multiple_edit', methods=['GET', 'POST'])
+@app.route('/multiple_edit', methods=('GET', 'POST'))
 def multiple_edit():
     titles_dict = {'lessons_beginning': 'Начало занятий',
                    'teaching_pairs': 'Учебная пара',

@@ -1,26 +1,20 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    {% from "_macros_bootstrap" import bootstrap_form_input, bootstrap_form_button with context %}
-    <meta charset="UTF-8">
+{% extends 'common_single_record_page.html' %}
+
+{% block title %}
     <title>{{ title }}</title>
-    {% include '_header.html' %}
-</head>
-<body>
-{% include '_menu.html' %}
-<div class="container">
+{% endblock %}
+
+{% block container_content %}
     <h2>{{ title }}</h2>
     <form method="post">
         {% autoescape false %}
-        {% for field in form if field.name != 'objects_count' %}
-            {% if field.type != 'SubmitField' %}
-                {{ bootstrap_form_input(field) }}
-            {% else %}
-                {{ bootstrap_form_button(field) }}
-            {% endif %}
-        {% endfor %}
+            {% for field in form if field.name != 'objects_count' %}
+                {% if field.type != 'SubmitField' %}
+                    {{ bootstrap_form_input(field) }}
+                {% else %}
+                    {{ bootstrap_form_button(field) }}
+                {% endif %}
+            {% endfor %}
         {% endautoescape %}
     </form>
-</div>
-</body>
-</html>
+{% endblock %}

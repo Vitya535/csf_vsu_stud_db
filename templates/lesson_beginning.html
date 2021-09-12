@@ -1,39 +1,23 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    {% from "_macros_bootstrap" import bootstrap_form_input, bootstrap_form_button with context %}
-    <meta charset="UTF-8">
+{% extends 'common_single_record_page.html' %}
+
+{% block title %}
     <title>Начало занятий</title>
-    {% include '_header.html' %}
-</head>
-<body>
-{% include '_menu.html' %}
-<div class="container">
+{% endblock %}
+
+{% block container_content %}
     <h2>Начало занятий</h2>
     {% if lesson_beginning.year and lesson_beginning.half_year %}
         <h3>{{ lesson_beginning.year }}/{{ lesson_beginning.half_year.value }}</h3>
     {% endif %}
     <form method="post">
         {% autoescape false %}
-            {% if year == 'new_year' and half_year == 'new_half_year' %}
-                {% for field in form %}
-                    {% if field.type != 'SubmitField' %}
-                        {{ bootstrap_form_input(field) }}
-                    {% else %}
-                        {{ bootstrap_form_button(field) }}
-                    {% endif %}
-                {% endfor %}
-            {% else %}
-                {% for field in form if field.name != 'objects_count' %}
-                    {% if field.type != 'SubmitField' %}
-                        {{ bootstrap_form_input(field) }}
-                    {% else %}
-                        {{ bootstrap_form_button(field) }}
-                    {% endif %}
-                {% endfor %}
-            {% endif %}
+            {% for field in form %}
+                {% if field.type != 'SubmitField' %}
+                    {{ bootstrap_form_input(field) }}
+                {% else %}
+                    {{ bootstrap_form_button(field) }}
+                {% endif %}
+            {% endfor %}
         {% endautoescape %}
     </form>
-</div>
-</body>
-</html>
+{% endblock %}
