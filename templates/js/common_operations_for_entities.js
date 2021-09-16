@@ -9,20 +9,25 @@ $(document).ready(function () {
         [`/teaching_lessons/${val}`, 'teaching_lessons']
     ]);
 
+    function getIdsForCheckboxes(checkboxesForOperations) {
+        const aTags = $(checkboxesForOperations).closest('tr').find('td:eq(1) > a');
+        let idsForOperation = [];
+        for (const aTag of aTags)
+        {
+            let recordIds = $(aTag).attr('href').split('/').slice(2);
+            idsForOperation.push(recordIds);
+        }
+        return idsForOperation;
+    }
+
     $('#button_delete').click(function () {
-        const checkboxesForOperations = $('#checkbox_for_operations:checked');
-        if ($(checkboxesForOperations).length < 1)
+        const checkboxesForOperations = $('.checkbox_for_operations:checked');
+        if (!$(checkboxesForOperations).length)
         {
             alert('Вы должны выбрать как минимум один обьект!');
             return;
         }
-        const aTags = $(checkboxesForOperations).closest('tr').find('td:eq(1) > a');
-        let idsToDelete = [];
-        for (const aTag of aTags)
-        {
-            let recordIds = $(aTag).attr('href').split('/').slice(2);
-            idsToDelete.push(recordIds);
-        }
+        const idsToDelete = getIdsForCheckboxes(checkboxesForOperations);
         $.post(
             '/delete_record',
             {table_name: mapForDeleteOperation.get(window.location.pathname), ids_to_delete: JSON.stringify(idsToDelete)},
@@ -33,27 +38,33 @@ $(document).ready(function () {
     });
 
     $('#button_edit').click(function () {
-        const checkboxesForOperations = $('#checkbox_for_operations:checked');
-        if ($(checkboxesForOperations).length < 1)
+        const checkboxesForOperations = $('.checkbox_for_operations:checked');
+        if (!$(checkboxesForOperations).length)
         {
             alert('Вы должны выбрать как минимум один обьект!');
             return;
         }
-        const aTags = $(checkboxesForOperations).closest('tr').find('td:eq(1) > a');
-        let idsToEdit = [];
-        for (const aTag of aTags)
-        {
-            let recordIds = $(aTag).attr('href').split('/').slice(2);
-            idsToEdit.push(recordIds);
-        }
-
-        const tableName = mapForDeleteOperation.get(window.location.pathname);
+        const idsToEdit = getIdsForCheckboxes(checkboxesForOperations);
         $.post(
             '/handle_data_for_multiple_edit',
-            {table_name: tableName, ids_to_edit: JSON.stringify(idsToEdit)},
+            {table_name: mapForDeleteOperation.get(window.location.pathname), ids_to_edit: JSON.stringify(idsToEdit)},
             function () {
                 window.location.href = "/multiple_edit";
             }
         );
+    });
+
+    $('#check_all').click(function () {
+        const checked = $(this).prop("checked");
+        let checkboxesForOperations;
+        if (checked) {
+            checkboxesForOperations = $('.checkbox_for_operations:not(:checked)');
+        } else {
+            checkboxesForOperations = $('.checkbox_for_operations:checked');
+        }
+
+        $(checkboxesForOperations).each(function () {
+            $(this).prop("checked", checked);
+        });
     });
 });
