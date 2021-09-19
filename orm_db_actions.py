@@ -242,11 +242,11 @@ def get_object_for_form_filling(table_name: str, all_ids: list) -> [LessonsBegin
                         'teaching_pairs': TeachingPairs,
                         'teaching_lessons': TeachingLessons}
     class_table = table_names_dict.get(table_name)
-    record_for_multiple_edit = class_table()
     all_ids = tuple(tuple(map(int, item)) for item in all_ids)
     records_from_db = db.session.query(class_table).filter(tuple_(*inspect(class_table).primary_key).in_(all_ids)).all()
     if len(records_from_db) == 1:
         return records_from_db[0]
+    record_for_multiple_edit = class_table()
     for column in class_table.__table__.columns:
         records_from_db_set = set(getattr(record, column.name) for record in records_from_db)
         if len(records_from_db_set) == 1:
