@@ -9,12 +9,12 @@
 {% endblock %}
 
 {% block field_names %}
-    <th class="sorting">Номер пары по числителю</th>
-    <th class="sorting">Номер дня пары по числителю</th>
-    <th class="sorting">Номер пары по знаменателю</th>
-    <th class="sorting">Номер дня пары по знаменателю</th>
-    <th class="sorting">Выставляет посещаемость староста</th>
-    <th class="sorting">Тип занятия</th>
+    <th>Номер пары по числителю</th>
+    <th>Номер дня пары по числителю</th>
+    <th>Номер пары по знаменателю</th>
+    <th>Номер дня пары по знаменателю</th>
+    <th>Выставляет посещаемость староста</th>
+    <th>Тип занятия</th>
 {% endblock %}
 
 {% block add_button %}
@@ -47,7 +47,7 @@
                 <td>Нет</td>
             {% endif %}
             <td>{{ teaching_lesson.lesson_type.value }}</td>
-            <td style="display: none;"></td>
+            <td></td>
         </tr>
     {% endfor %}
 {% endblock %}

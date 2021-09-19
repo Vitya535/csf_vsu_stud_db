@@ -17,14 +17,14 @@
             <table class="table" id="table_with_records">
                 <thead>
                     <tr>
-                        <th>
+                        <th class="no-sorting">
                             <input class="form-check-input" type="checkbox" id="check_all">
                             <label class="form-check-label" for="check_all">
                             </label>
                         </th>
                         {% block field_names %}
                         {% endblock %}
-                        <th></th>
+                        <th class="no-sorting"></th>
                     </tr>
                 </thead>
                 <tbody>

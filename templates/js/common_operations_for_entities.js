@@ -5,7 +5,7 @@ $(document).ready(function () {
         "info": false,
         "paging": false,
         "columnDefs": [{
-            "targets": [0, -1],
+            "targets": getIndexesOfTh(),
             "orderable": false
         }],
         "aaSorting": []
@@ -20,6 +20,14 @@ $(document).ready(function () {
         ['/teaching_lessons', 'teaching_lessons'],
         [`/teaching_lessons/${val}`, 'teaching_lessons']
     ]);
+
+    function getIndexesOfTh() {
+        let indexes = [];
+        $('#table_with_records > thead > tr:first > th.no-sorting').each(function (){
+           indexes.push($(this).index());
+        });
+        return indexes;
+    }
 
     function getIdsForCheckboxes(checkboxesForOperations) {
         const aTags = $(checkboxesForOperations).closest('tr').find('td:eq(1) > a');
@@ -78,9 +86,5 @@ $(document).ready(function () {
         $(checkboxesForOperations).each(function () {
             $(this).prop("checked", checked);
         });
-    });
-
-    $('th.sorting').click(function () {
-        console.log($(this).index());
     });
 });

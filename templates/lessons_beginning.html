@@ -9,12 +9,12 @@
 {% endblock %}
 
 {% block field_names %}
-    <th class="sorting">Учебный год/Полугодие</th>
-    <th class="sorting">Дата начала занятий</th>
-    <th class="sorting">Дата конца занятий</th>
-    <th></th>
-    <th></th>
-    <th></th>
+    <th>Учебный год/Полугодие</th>
+    <th>Дата начала занятий</th>
+    <th>Дата конца занятий</th>
+    <th class="no-sorting"></th>
+    <th class="no-sorting"></th>
+    <th class="no-sorting"></th>
 {% endblock %}
 
 {% block add_button %}
@@ -40,24 +40,30 @@
             </td>
             <td>{{ lesson_beginning.beginning_date }}</td>
             <td>{{ lesson_beginning.end_date }}</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
         </tr>
     {% endfor %}
 {% endblock %}
 
 {% block pagination %}
-    {% for i in range(1, pages_count + 1) if pages_count > 1 %}
-        {% if i != current_page %}
-            <a href="{{ url_for('lessons_beginning', page = i) }}" style="text-decoration: none;">
-                <div class="pagination-div font-weight-bold text-dark text-center align-middle d-table-cell">
-                    {{ i }}
-                </div>
-            </a>
-        {% else %}
-            <a href="#" class="current-page">
-                <div class="pagination-div bg-secondary rounded-circle font-weight-bold text-dark text-center align-middle d-table-cell">
-                    {{ i }}
-                </div>
-            </a>
-        {% endif %}
-    {% endfor %}
+    <div class="mt-2">
+        {% for i in range(1, pages_count + 1) if pages_count > 1 %}
+            {% if i != current_page %}
+                <a href="{{ url_for('lessons_beginning', page = i) }}" class="pagination-link">
+                    <div class="pagination-div font-weight-bold text-dark text-center align-middle d-table-cell">
+                        {{ i }}
+                    </div>
+                </a>
+            {% else %}
+                <a href="#" class="current-page">
+                    <div class="pagination-div bg-secondary rounded-circle font-weight-bold text-dark text-center align-middle d-table-cell">
+                        {{ i }}
+                    </div>
+                </a>
+            {% endif %}
+        {% endfor %}
+    </div>
 {% endblock %}
