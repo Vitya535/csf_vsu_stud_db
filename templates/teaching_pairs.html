@@ -9,9 +9,9 @@
 {% endblock %}
 
 {% block field_names %}
-    <th>Номер пары</th>
-    <th>Время начала занятий</th>
-    <th>Время конца занятий</th>
+    <th class="sorting">Номер пары</th>
+    <th class="sorting">Время начала занятий</th>
+    <th class="sorting">Время конца занятий</th>
     <th></th>
     <th></th>
     <th></th>
@@ -20,7 +20,8 @@
 {% block add_button %}
     <a href="{{ url_for('teaching_pair', teaching_pair_id='new') }}" class="btn btn-primary mr-1">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-plus-circle-fill" viewBox="0 0 16 16">
-            <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3v-3z"/>
+            <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3v-3z">
+            </path>
         </svg>
         Новая учебная пара
     </a>
@@ -30,8 +31,8 @@
     {% for teaching_pair in all_teaching_pairs.items %}
         <tr>
             <td>
-                <input class="form-check-input checkbox_for_operations" type="checkbox" value="">
-                <label class="form-check-label" for="flexCheckChecked">
+                <input class="form-check-input checkbox_for_operations" type="checkbox">
+                <label class="form-check-label" for="checkbox_for_operations">
                 </label>
             </td>
             <td><a href="{{ url_for('teaching_pair', teaching_pair_id=teaching_pair.pair_id) }}">{{ teaching_pair.pair_number }}</a></td>
@@ -42,15 +43,19 @@
 {% endblock %}
 
 {% block pagination %}
-    {% if all_teaching_pairs.has_prev %}
-        <a href="{{ url_for('teaching_pairs', page = all_teaching_pairs.prev_num) }}"><< Previous page</a>
-    {% else %}
-        << Previous page
-    {% endif %}
-    |
-    {% if all_teaching_pairs.has_next %}
-        <a href="{{ url_for('teaching_pairs', page = all_teaching_pairs.next_num) }}">Next page >></a>
-    {% else %}
-        Next page >>
-    {% endif %}
+    {% for i in range(1, pages_count + 1) if pages_count > 1 %}
+        {% if i != current_page %}
+            <a href="{{ url_for('teaching_pairs', page = i) }}" style="text-decoration: none;">
+                <div class="pagination-div font-weight-bold text-dark text-center align-middle d-table-cell">
+                    {{ i }}
+                </div>
+            </a>
+        {% else %}
+            <a href="#" class="current-page">
+                <div class="pagination-div font-weight-bold text-dark text-center align-middle d-table-cell bg-secondary rounded-circle">
+                    {{ i }}
+                </div>
+            </a>
+        {% endif %}
+    {% endfor %}
 {% endblock %}

@@ -1,0 +1,31 @@
+table#table_with_records {
+    border-bottom: 0;
+    border-collapse: collapse;
+}
+
+table#table_with_records thead th {
+    border-bottom: 2px solid #dee2e6;
+}
+
+table#table_with_records th, table#table_with_records td {
+    padding: .75rem;
+}
+
+div.pagination-div:hover {
+    border-radius: 50% !important;
+    background-color: #6c757d !important;
+}
+
+div.pagination-div {
+    width: 40px;
+    height: 40px;
+}
+
+a.pagination-link {
+    text-decoration: none;
+}
+
+a.current-page {
+    pointer-events: none;
+    cursor: default;
+}

@@ -9,18 +9,19 @@
 {% endblock %}
 
 {% block field_names %}
-    <th>Номер пары по числителю</th>
-    <th>Номер дня пары по числителю</th>
-    <th>Номер пары по знаменателю</th>
-    <th>Номер дня пары по знаменателю</th>
-    <th>Выставляет посещаемость староста</th>
-    <th>Тип занятия</th>
+    <th class="sorting">Номер пары по числителю</th>
+    <th class="sorting">Номер дня пары по числителю</th>
+    <th class="sorting">Номер пары по знаменателю</th>
+    <th class="sorting">Номер дня пары по знаменателю</th>
+    <th class="sorting">Выставляет посещаемость староста</th>
+    <th class="sorting">Тип занятия</th>
 {% endblock %}
 
 {% block add_button %}
     <a href="{{ url_for('teaching_lesson', teaching_lesson_id='new') }}" class="btn btn-primary mr-1">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-plus-circle-fill" viewBox="0 0 16 16">
-            <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3v-3z"/>
+            <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3v-3z">
+            </path>
         </svg>
         Новое учебное занятие
     </a>
@@ -30,8 +31,8 @@
     {% for teaching_lesson in all_teaching_lessons.items %}
         <tr>
             <td>
-                <input class="form-check-input checkbox_for_operations" type="checkbox" value="">
-                <label class="form-check-label" for="flexCheckChecked">
+                <input class="form-check-input checkbox_for_operations" type="checkbox">
+                <label class="form-check-label" for="checkbox_for_operations">
                 </label>
             </td>
             <td>
@@ -46,20 +47,27 @@
                 <td>Нет</td>
             {% endif %}
             <td>{{ teaching_lesson.lesson_type.value }}</td>
+            <td style="display: none;"></td>
         </tr>
     {% endfor %}
 {% endblock %}
 
 {% block pagination %}
-    {% if all_teaching_lessons.has_prev %}
-        <a href="{{ url_for('teaching_lessons', page = all_teaching_lessons.prev_num) }}"><< Previous page</a>
-    {% else %}
-        << Previous page
-    {% endif %}
-    |
-    {% if all_teaching_lessons.has_next %}
-        <a href="{{ url_for('teaching_lessons', page = all_teaching_lessons.next_num) }}">Next page >></a>
-    {% else %}
-        Next page >>
-    {% endif %}
+    <div class="mt-2">
+        {% for i in range(1, pages_count + 1) if pages_count > 1 %}
+            {% if i != current_page %}
+                <a href="{{ url_for('teaching_lessons', page = i) }}" class="pagination-link">
+                    <div class="pagination-div font-weight-bold text-dark text-center align-middle d-table-cell">
+                        {{ i }}
+                    </div>
+                </a>
+            {% else %}
+                <a href="#" class="current-page">
+                    <div class="pagination-div font-weight-bold text-dark text-center align-middle d-table-cell bg-secondary rounded-circle">
+                        {{ i }}
+                    </div>
+                </a>
+            {% endif %}
+        {% endfor %}
+    </div>
 {% endblock %}

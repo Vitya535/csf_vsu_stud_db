@@ -1,4 +1,16 @@
 $(document).ready(function () {
+    $('#table_with_records').DataTable({
+        "searching": false,
+        "lengthChange": false,
+        "info": false,
+        "paging": false,
+        "columnDefs": [{
+            "targets": [0, -1],
+            "orderable": false
+        }],
+        "aaSorting": []
+    });
+
     const val = window.location.pathname.match(/[0-9]+/);
     const mapForDeleteOperation = new Map([
         ['/lessons_beginning', 'lessons_beginning'],
@@ -66,5 +78,9 @@ $(document).ready(function () {
         $(checkboxesForOperations).each(function () {
             $(this).prop("checked", checked);
         });
+    });
+
+    $('th.sorting').click(function () {
+        console.log($(this).index());
     });
 });

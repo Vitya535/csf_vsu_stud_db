@@ -3,6 +3,7 @@ from datetime import datetime
 from itertools import islice
 from json import dumps
 from json import loads
+from math import ceil
 
 from flask import request, render_template, redirect, url_for, send_from_directory, jsonify, session
 from flask_login import LoginManager, login_required, login_user, logout_user, current_user
@@ -18,6 +19,7 @@ from model import StudGroup, Subject, Teacher, Student, CurriculumUnit, Curricul
 from orm_db_actions import delete_record_from_table
 from orm_db_actions import filter_students_attendance
 from orm_db_actions import get_all_groups_by_semester
+from orm_db_actions import get_all_lessons_beginning
 from orm_db_actions import get_current_half_year
 from orm_db_actions import get_curriculum_units_by_group_id_and_lesson_type
 from orm_db_actions import get_group_by_semester_and_group_number
@@ -37,8 +39,10 @@ from orm_db_actions import get_teaching_pairs_on_page
 from orm_db_actions import insert_or_update_attendance
 from orm_db_actions import multiple_edit_records
 from orm_db_actions import update_can_expose_group_leader_attr_by_teaching_lesson_id
+from orm_db_actions import get_all_teaching_lessons
+from orm_db_actions import get_all_teaching_pairs
+from orm_db_actions import RECORDS_PER_PAGE
 from password_checker import password_checker
-from utils import HalfYearEnum
 
 # flask-login
 login_manager = LoginManager()
@@ -952,8 +956,11 @@ def teaching_lessons(page: int = 1):
     """Страничка с интерфейсом для редактирования учебных занятий"""
     if current_user.role_name != 'AdminUser':
         return render_error(403)
-    all_teaching_lessons = get_teaching_lessons_on_page(page)
-    return render_template('teaching_lessons.html', all_teaching_lessons=all_teaching_lessons)
+    teaching_lessons_on_page = get_teaching_lessons_on_page(page)
+    all_teaching_lessons = get_all_teaching_lessons()
+    pages_count = ceil(len(all_teaching_lessons) / RECORDS_PER_PAGE)
+    return render_template('teaching_lessons.html', all_teaching_lessons=teaching_lessons_on_page,
+                           current_page=page, pages_count=pages_count)
 
 
 @app.route('/teaching_lesson/<teaching_lesson_id>', methods=('GET', 'POST'))
@@ -999,8 +1006,11 @@ def teaching_pairs(page: int = 1):
     """Страничка с интерфейсом для редактирования учебных пар"""
     if current_user.role_name != 'AdminUser':
         return render_error(403)
-    all_teaching_pairs = get_teaching_pairs_on_page(page)
-    return render_template('teaching_pairs.html', all_teaching_pairs=all_teaching_pairs)
+    teaching_pairs_on_page = get_teaching_pairs_on_page(page)
+    all_teaching_pairs = get_all_teaching_pairs()
+    pages_count = ceil(len(all_teaching_pairs) / RECORDS_PER_PAGE)
+    return render_template('teaching_pairs.html', all_teaching_pairs=teaching_pairs_on_page,
+                           current_page=page, pages_count=pages_count)
 
 
 @app.route('/teaching_pair/<teaching_pair_id>', methods=('GET', 'POST'))
@@ -1046,8 +1056,11 @@ def lessons_beginning(page: int = 1):
     """Страничка с интерфейсом для редактирования списка начала занятий"""
     if current_user.role_name != 'AdminUser':
         return render_error(403)
-    all_lessons_beginning = get_lessons_beginning_on_page(page)
-    return render_template('lessons_beginning.html', all_lessons_beginning=all_lessons_beginning)
+    lessons_beginning_on_page = get_lessons_beginning_on_page(page)
+    all_lessons_beginning = get_all_lessons_beginning()
+    pages_count = ceil(len(all_lessons_beginning) / RECORDS_PER_PAGE)
+    return render_template('lessons_beginning.html', all_lessons_beginning=lessons_beginning_on_page,
+                           current_page=page, pages_count=pages_count)
 
 
 @app.route('/lesson_beginning/<year>/<half_year>', methods=('GET', 'POST'))
