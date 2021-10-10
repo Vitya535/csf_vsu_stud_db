@@ -11,13 +11,23 @@
     {% endif %}
     <form method="post">
         {% autoescape false %}
-            {% for field in form %}
-                {% if field.type != 'SubmitField' %}
-                    {{ bootstrap_form_input(field) }}
-                {% else %}
-                    {{ bootstrap_form_button(field) }}
-                {% endif %}
-            {% endfor %}
+            {% if not teaching_pair.pair_id %}
+                {% for field in form %}
+                    {% if field.type != 'SubmitField' %}
+                        {{ bootstrap_form_input(field) }}
+                    {% else %}
+                        {{ bootstrap_form_button(field) }}
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+                {% for field in form if field.name != 'objects_count' %}
+                    {% if field.type != 'SubmitField' %}
+                        {{ bootstrap_form_input(field) }}
+                    {% else %}
+                        {{ bootstrap_form_button(field) }}
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
         {% endautoescape %}
     </form>
 {% endblock %}

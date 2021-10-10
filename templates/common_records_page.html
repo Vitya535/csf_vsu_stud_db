@@ -18,9 +18,8 @@
                 <thead>
                     <tr>
                         <th class="no-sorting">
-                            <input class="form-check-input" type="checkbox" id="check_all">
-                            <label class="form-check-label" for="check_all">
-                            </label>
+                            {% block check_all_checkbox %}
+                            {% endblock %}
                         </th>
                         {% block field_names %}
                         {% endblock %}
@@ -48,10 +47,9 @@
                     {% endblock %}
                 </tbody>
             </table>
-            {% block pagination %}
-            {% endblock %}
         </div>
         <script src="{{ url_for('static', filename='jquery/jquery.dataTables.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='jquery/input.js') }}"></script>
         <script type="text/javascript">{% include 'js/common_operations_for_entities.js' %}</script>
     </body>
 </html>

@@ -3,7 +3,6 @@ from datetime import datetime
 from itertools import islice
 from json import dumps
 from json import loads
-from math import ceil
 
 from flask import request, render_template, redirect, url_for, send_from_directory, jsonify, session
 from flask_login import LoginManager, login_required, login_user, logout_user, current_user
@@ -20,28 +19,24 @@ from orm_db_actions import delete_record_from_table
 from orm_db_actions import filter_students_attendance
 from orm_db_actions import get_all_groups_by_semester
 from orm_db_actions import get_all_lessons_beginning
+from orm_db_actions import get_all_teaching_lessons
+from orm_db_actions import get_all_teaching_pairs
 from orm_db_actions import get_current_half_year
 from orm_db_actions import get_curriculum_units_by_group_id_and_lesson_type
 from orm_db_actions import get_group_by_semester_and_group_number
 from orm_db_actions import get_group_of_current_user_by_id
 from orm_db_actions import get_lesson_beginning_by_year_and_half_year
 from orm_db_actions import get_lesson_dates_for_subject
-from orm_db_actions import get_lessons_beginning_on_page
 from orm_db_actions import get_object_for_form_filling
 from orm_db_actions import get_student_by_card_number
 from orm_db_actions import get_student_by_id_and_fio
 from orm_db_actions import get_teaching_lesson_by_id
 from orm_db_actions import get_teaching_lesson_id_by_subject_name
-from orm_db_actions import get_teaching_lessons_on_page
 from orm_db_actions import get_teaching_pair_by_id
 from orm_db_actions import get_teaching_pair_ids
-from orm_db_actions import get_teaching_pairs_on_page
 from orm_db_actions import insert_or_update_attendance
 from orm_db_actions import multiple_edit_records
 from orm_db_actions import update_can_expose_group_leader_attr_by_teaching_lesson_id
-from orm_db_actions import get_all_teaching_lessons
-from orm_db_actions import get_all_teaching_pairs
-from orm_db_actions import RECORDS_PER_PAGE
 from password_checker import password_checker
 
 # flask-login
@@ -950,17 +945,13 @@ def delete_record():
 
 
 @app.route('/teaching_lessons')
-@app.route('/teaching_lessons/<int:page>')
 @login_required
-def teaching_lessons(page: int = 1):
+def teaching_lessons():
     """Страничка с интерфейсом для редактирования учебных занятий"""
     if current_user.role_name != 'AdminUser':
         return render_error(403)
-    teaching_lessons_on_page = get_teaching_lessons_on_page(page)
     all_teaching_lessons = get_all_teaching_lessons()
-    pages_count = ceil(len(all_teaching_lessons) / RECORDS_PER_PAGE)
-    return render_template('teaching_lessons.html', all_teaching_lessons=teaching_lessons_on_page,
-                           current_page=page, pages_count=pages_count)
+    return render_template('teaching_lessons.html', all_teaching_lessons=all_teaching_lessons)
 
 
 @app.route('/teaching_lesson/<teaching_lesson_id>', methods=('GET', 'POST'))
@@ -993,24 +984,20 @@ def teaching_lesson(teaching_lesson_id: [int, str]):
             db.session.rollback()
         if teaching_lesson_id == 'new':
             db.session.flush()
-            return redirect(url_for('teaching_lessons'))
+        return redirect(url_for('teaching_lessons'))
     return render_template('teaching_lesson.html',
                            form=form,
                            teaching_lesson=new_teaching_lesson)
 
 
 @app.route('/teaching_pairs')
-@app.route('/teaching_pairs/<int:page>')
 @login_required
-def teaching_pairs(page: int = 1):
+def teaching_pairs():
     """Страничка с интерфейсом для редактирования учебных пар"""
     if current_user.role_name != 'AdminUser':
         return render_error(403)
-    teaching_pairs_on_page = get_teaching_pairs_on_page(page)
     all_teaching_pairs = get_all_teaching_pairs()
-    pages_count = ceil(len(all_teaching_pairs) / RECORDS_PER_PAGE)
-    return render_template('teaching_pairs.html', all_teaching_pairs=teaching_pairs_on_page,
-                           current_page=page, pages_count=pages_count)
+    return render_template('teaching_pairs.html', all_teaching_pairs=all_teaching_pairs)
 
 
 @app.route('/teaching_pair/<teaching_pair_id>', methods=('GET', 'POST'))
@@ -1043,24 +1030,20 @@ def teaching_pair(teaching_pair_id: [int, str]):
             db.session.rollback()
         if teaching_pair_id == 'new':
             db.session.flush()
-            return redirect(url_for('teaching_pairs'))
+        return redirect(url_for('teaching_pairs'))
     return render_template('teaching_pair.html',
                            form=form,
                            teaching_pair=new_teaching_pair)
 
 
 @app.route('/lessons_beginning')
-@app.route('/lessons_beginning/<int:page>')
 @login_required
-def lessons_beginning(page: int = 1):
+def lessons_beginning():
     """Страничка с интерфейсом для редактирования списка начала занятий"""
     if current_user.role_name != 'AdminUser':
         return render_error(403)
-    lessons_beginning_on_page = get_lessons_beginning_on_page(page)
     all_lessons_beginning = get_all_lessons_beginning()
-    pages_count = ceil(len(all_lessons_beginning) / RECORDS_PER_PAGE)
-    return render_template('lessons_beginning.html', all_lessons_beginning=lessons_beginning_on_page,
-                           current_page=page, pages_count=pages_count)
+    return render_template('lessons_beginning.html', all_lessons_beginning=all_lessons_beginning)
 
 
 @app.route('/lesson_beginning/<year>/<half_year>', methods=('GET', 'POST'))
@@ -1094,7 +1077,7 @@ def lesson_beginning(year: [int, str], half_year: [int, str]):
             db.session.rollback()
         if year == 'new_year' and half_year == 'new_half_year':
             db.session.flush()
-            return redirect(url_for('lessons_beginning'))
+        return redirect(url_for('lessons_beginning'))
     return render_template('lesson_beginning.html',
                            form=form,
                            lesson_beginning=lesson_beginning_with_year_and_half_year)

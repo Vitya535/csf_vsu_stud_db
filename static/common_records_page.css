@@ -29,3 +29,35 @@ a.current-page {
     pointer-events: none;
     cursor: default;
 }
+
+.dataTables_wrapper .dataTables_length {
+    float: right;
+    padding-top: .25em;
+}
+
+.paginate_input {
+    width: 35px;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    padding: 0;
+    background: none;
+    border: none;
+    color: #333 !important;
+}
+
+.dataTables_wrapper .dataTables_paginate {
+    float: none;
+    text-align: center;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background: none;
+    border: none;
+    color: #333 !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:active {
+    background: none;
+    border: none;
+}

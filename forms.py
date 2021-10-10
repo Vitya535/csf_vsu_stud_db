@@ -373,9 +373,9 @@ class TeachingLessonForm(MainForm):
                                                                 message='Номер дня по числителю должен быть в диапазоне от 1 до 7')))
     can_expose_group_leader = BooleanField('Выставляет посещаемость староста')
     lesson_type = SelectField('Тип занятия',
-                              choices=(('lection', LessonType.lection.value),
-                                       ('practice', LessonType.practice.value),
-                                       ('seminar', LessonType.seminar.value)))
+                              choices=((LessonType.lection.name, LessonType.lection.value),
+                                       (LessonType.practice.name, LessonType.practice.value),
+                                       (LessonType.seminar.name, LessonType.seminar.value)))
 
     def __iter__(self):
         fields = tuple(super(MainForm, self).__iter__())

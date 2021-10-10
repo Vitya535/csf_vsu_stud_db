@@ -19,8 +19,6 @@ from model import TEACHING_LESSON_AND_CURRICULUM_UNIT
 from model import TeachingLessons
 from model import TeachingPairs
 
-RECORDS_PER_PAGE = 10
-
 
 def get_all_groups_by_semester(semester: int) -> list:
     """Запрос для нахождения всех групп по семестру"""
@@ -282,24 +280,6 @@ def get_all_lessons_beginning() -> list:
 def get_all_teaching_pairs() -> list:
     """Запрос для получения всех учебных пар"""
     teaching_pairs = db.session.query(TeachingPairs).all()
-    return teaching_pairs
-
-
-def get_teaching_lessons_on_page(page: int):
-    """Запрос для получения учебных занятий на конкретной странице"""
-    teaching_lessons = db.session.query(TeachingLessons).paginate(page, RECORDS_PER_PAGE, False)
-    return teaching_lessons
-
-
-def get_lessons_beginning_on_page(page: int):
-    """Запрос для получения начал занятий на конкретной странице"""
-    lessons_beginning = db.session.query(LessonsBeginning).paginate(page, RECORDS_PER_PAGE, False)
-    return lessons_beginning
-
-
-def get_teaching_pairs_on_page(page: int):
-    """Запрос для получения учебных пар на конкретной странице"""
-    teaching_pairs = db.session.query(TeachingPairs).paginate(page, RECORDS_PER_PAGE, False)
     return teaching_pairs
 
 
