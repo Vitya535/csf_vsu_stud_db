@@ -32,6 +32,22 @@ $(document).ready(function () {
         "aaSorting": []
     });
 
+    const paginateInput = $('.paginate_input');
+
+    $(paginateInput).off('keyup');
+
+    $(paginateInput).keydown(function(e) {
+        if (e.which === 13) {
+            let table = $('#table_with_records').DataTable();
+            let info = table.page.info();
+            if (this.value === '' || this.value.match(/[^0-9]/) || this.value < 1 || this.value > info.pages) {
+                alert(`Пожалуйста, введите целое число от 1 до ${info.pages}`);
+                return;
+            }
+            table.page(this.value - 1).draw(false);
+        }
+    });
+
     const val = window.location.pathname.match(/[0-9]+/);
     const mapForDeleteOperation = new Map([
         ['/lessons_beginning', 'lessons_beginning'],
