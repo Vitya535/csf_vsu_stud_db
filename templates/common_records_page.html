@@ -7,7 +7,10 @@
         {% endblock %}
         {% include '_header.html' %}
         <link rel="stylesheet" href="{{ url_for('static', filename='jquery/jquery.dataTables.min.css') }}" />
+        <link rel="stylesheet" href="{{ url_for('static', filename='jquery/fixedHeader.dataTables.min.css') }}" />
         <link rel="stylesheet" href="{{ url_for('static', filename='common_records_page.css') }}" />
+        {% block additional_css %}
+        {% endblock %}
     </head>
     <body>
         {% include '_menu.html' %}
@@ -17,13 +20,13 @@
             <table class="table" id="table_with_records">
                 <thead>
                     <tr>
-                        <th class="no-sorting">
+                        <th class="no-sorting align-middle">
                             {% block check_all_checkbox %}
                             {% endblock %}
                         </th>
                         {% block field_names %}
                         {% endblock %}
-                        <th class="no-sorting"></th>
+                        <th class="no-sorting align-middle"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -49,6 +52,7 @@
             </table>
         </div>
         <script src="{{ url_for('static', filename='jquery/jquery.dataTables.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='jquery/dataTables.fixedHeader.min.js') }}"></script>
         <script src="{{ url_for('static', filename='jquery/input.js') }}"></script>
         <script type="text/javascript">{% include 'js/common_operations_for_entities.js' %}</script>
     </body>

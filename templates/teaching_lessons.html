@@ -4,8 +4,12 @@
     <title>Учебные занятия</title>
 {% endblock %}
 
+{% block additional_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='change_table_size.css') }}" />
+{% endblock %}
+
 {% block header_title %}
-    <h2>Список учебных занятий</h2>
+    <h4>Список учебных занятий</h4>
 {% endblock %}
 
 {% block check_all_checkbox %}
@@ -17,12 +21,12 @@
 {% endblock %}
 
 {% block field_names %}
-    <th>Номер пары по числителю</th>
-    <th>Номер дня пары по числителю</th>
-    <th>Номер пары по знаменателю</th>
-    <th>Номер дня пары по знаменателю</th>
-    <th>Выставляет посещаемость староста</th>
-    <th>Тип занятия</th>
+    <th class="align-middle">Номер пары по числителю</th>
+    <th class="align-middle">Номер дня пары по числителю</th>
+    <th class="align-middle">Номер пары по знаменателю</th>
+    <th class="align-middle">Номер дня пары по знаменателю</th>
+    <th class="align-middle">Выставляет посещаемость староста</th>
+    <th class="align-middle">Тип занятия</th>
 {% endblock %}
 
 {% block add_button %}
