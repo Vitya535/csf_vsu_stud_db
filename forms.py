@@ -298,8 +298,8 @@ class LessonBeginningForm(MainForm):
                             (Unique((LessonsBeginning.year, LessonsBeginning.half_year),
                                     get_session=lambda: db.session,
                                     message='Начало занятий с таким полугодием уже существует'),),
-                            choices=((HalfYearEnum.first_half_year.name, 'Первое'),
-                                     (HalfYearEnum.second_half_year.name, 'Второе')))
+                            choices=((HalfYearEnum.first_half_year, 'Первое'),
+                                     (HalfYearEnum.second_half_year, 'Второе')))
     beginning_date = DateField('Начало занятий', (validators.DataRequired(),))
     end_date = DateField('Конец занятий', (validators.DataRequired(),))
 
@@ -373,9 +373,9 @@ class TeachingLessonForm(MainForm):
                                                                 message='Номер дня по числителю должен быть в диапазоне от 1 до 7')))
     can_expose_group_leader = BooleanField('Выставляет посещаемость староста')
     lesson_type = SelectField('Тип занятия',
-                              choices=((LessonType.lection.name, LessonType.lection.value),
-                                       (LessonType.practice.name, LessonType.practice.value),
-                                       (LessonType.seminar.name, LessonType.seminar.value)))
+                              choices=((LessonType.lection, LessonType.lection.value),
+                                       (LessonType.practice, LessonType.practice.value),
+                                       (LessonType.seminar, LessonType.seminar.value)))
 
     def __iter__(self):
         fields = tuple(super(MainForm, self).__iter__())
