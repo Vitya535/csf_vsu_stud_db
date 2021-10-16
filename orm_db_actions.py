@@ -226,7 +226,8 @@ def delete_record_from_table(table_name: str, all_ids: list):
                             'teaching_pairs': TeachingPairs,
                             'teaching_lessons': TeachingLessons}
         class_table = table_names_dict.get(table_name)
-        all_ids = tuple(tuple(map(int, item)) for item in all_ids)
+        pk = inspect(class_table).primary_key
+        all_ids = tuple(tuple(pk[i].type.python_type(item[i]) for i in range(len(item))) for item in all_ids)
         db.session.query(class_table).filter(tuple_(*inspect(class_table).primary_key).in_(all_ids)).delete()
         db.session.commit()
     except IntegrityError:
@@ -240,8 +241,9 @@ def get_object_for_form_filling(table_name: str, all_ids: list) -> [LessonsBegin
                         'teaching_pairs': TeachingPairs,
                         'teaching_lessons': TeachingLessons}
     class_table = table_names_dict.get(table_name)
-    all_ids = tuple(tuple(map(int, item)) for item in all_ids)
-    records_from_db = db.session.query(class_table).filter(tuple_(*inspect(class_table).primary_key).in_(all_ids)).all()
+    pk = inspect(class_table).primary_key
+    all_ids = tuple(tuple(pk[i].type.python_type(item[i]) for i in range(len(item))) for item in all_ids)
+    records_from_db = db.session.query(class_table).filter(tuple_(*pk).in_(all_ids)).all()
     if len(records_from_db) == 1:
         return records_from_db[0]
     record_for_multiple_edit = class_table()
@@ -256,8 +258,9 @@ def multiple_edit_records(object_from_form_data: [LessonsBeginning, TeachingLess
     """Редактирование нескольких записей в таблице"""
     try:
         record_class = type(object_from_form_data)
-        ids_to_edit = tuple(tuple(map(int, item)) for item in ids_to_edit)
-        edit_query = db.session.query(record_class).filter(tuple_(*inspect(record_class).primary_key).in_(ids_to_edit))
+        pk = inspect(record_class).primary_key
+        ids_to_edit = tuple(tuple(pk[i].type.python_type(item[i]) for i in range(len(item))) for item in ids_to_edit)
+        edit_query = db.session.query(record_class).filter(tuple_(*pk).in_(ids_to_edit))
         attrs_and_values_for_update = object_from_form_data.get_attrs_and_values_for_update()
         edit_query.update(attrs_and_values_for_update)
         db.session.commit()

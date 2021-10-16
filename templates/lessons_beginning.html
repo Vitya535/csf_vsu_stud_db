@@ -44,7 +44,7 @@
                 </label>
             </td>
             <td>
-                <a href="{{ url_for('lesson_beginning', year=lesson_beginning.year, half_year=lesson_beginning.half_year.value) }}">{{ lesson_beginning.year }}/{{ lesson_beginning.half_year.value }}</a>
+                <a href="{{ url_for('lesson_beginning', year=lesson_beginning.year, half_year=lesson_beginning.half_year) }}">{{ lesson_beginning.year }}/{{ lesson_beginning.half_year }}</a>
             </td>
             <td>{{ lesson_beginning.beginning_date }}</td>
             <td>{{ lesson_beginning.end_date }}</td>

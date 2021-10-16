@@ -7,7 +7,7 @@
 {% block container_content %}
     <h2>Учебное занятие</h2>
     {% if teaching_lesson.teaching_lesson_id %}
-        <h3>{{ teaching_lesson.lesson_type.value }}</h3>
+        <h3>{{ teaching_lesson.lesson_type }}</h3>
     {% endif %}
     <form method="post">
         {% autoescape false %}

@@ -11,8 +11,8 @@ from wtforms_components import TimeField
 from app_config import db
 from model import StudGroup, Subject, Teacher, Student, StudentStates, StudentStateDict, CurriculumUnit, AttMark, \
     MarkTypes, MarkTypeDict, AdminUser, LessonsBeginning, TeachingPairs, TeachingLessons
-from utils import HalfYearEnum
-from utils import LessonType
+from utils import HALF_YEARS
+from utils import LESSON_TYPES
 from utils import get_field
 
 
@@ -271,6 +271,10 @@ class LoginForm(Form):
 
 # code for attendance
 
+HALF_YEARS_CHOICES = tuple((half_year,) * 2 for half_year in HALF_YEARS)
+LESSON_TYPES_CHOICES = tuple((lesson_type,) * 2 for lesson_type in LESSON_TYPES)
+
+
 class MainForm(ModelForm):
     objects_count = IntegerField('Количество обьектов',
                                  (validators.DataRequired(),
@@ -298,8 +302,7 @@ class LessonBeginningForm(MainForm):
                             (Unique((LessonsBeginning.year, LessonsBeginning.half_year),
                                     get_session=lambda: db.session,
                                     message='Начало занятий с таким полугодием уже существует'),),
-                            choices=((HalfYearEnum.first_half_year, 'Первое'),
-                                     (HalfYearEnum.second_half_year, 'Второе')))
+                            choices=HALF_YEARS_CHOICES)
     beginning_date = DateField('Начало занятий', (validators.DataRequired(),))
     end_date = DateField('Конец занятий', (validators.DataRequired(),))
 
@@ -373,9 +376,7 @@ class TeachingLessonForm(MainForm):
                                                                 message='Номер дня по числителю должен быть в диапазоне от 1 до 7')))
     can_expose_group_leader = BooleanField('Выставляет посещаемость староста')
     lesson_type = SelectField('Тип занятия',
-                              choices=((LessonType.lection, LessonType.lection.value),
-                                       (LessonType.practice, LessonType.practice.value),
-                                       (LessonType.seminar, LessonType.seminar.value)))
+                              choices=LESSON_TYPES_CHOICES)
 
     def __iter__(self):
         fields = tuple(super(MainForm, self).__iter__())

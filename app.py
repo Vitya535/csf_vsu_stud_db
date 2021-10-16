@@ -14,7 +14,7 @@ from forms import StudGroupForm, StudentForm, StudentSearchForm, SubjectForm, Te
     CurriculumUnitCopyForm, CurriculumUnitUnionForm, CurriculumUnitAddAppendStudGroupForm, AdminUserForm, LoginForm
 from forms import StudentsUnallocatedForm, LessonBeginningForm, TeachingPairsForm, TeachingLessonForm
 from model import StudGroup, Subject, Teacher, Student, CurriculumUnit, CurriculumUnitUnion, AttMark, AdminUser, \
-    Person, LessonType, LessonsBeginning, TeachingPairs, TeachingLessons
+    Person, LESSON_TYPES, LessonsBeginning, TeachingPairs, TeachingLessons
 from orm_db_actions import delete_record_from_table
 from orm_db_actions import filter_students_attendance
 from orm_db_actions import get_all_groups_by_semester
@@ -873,7 +873,7 @@ def attendance():
     if request.method == 'GET':
         return render_template('attendance.html',
                                **common_context_values,
-                               lesson_types=[lesson_type.value for lesson_type in LessonType])
+                               lesson_types=LESSON_TYPES)
     return jsonify(**common_context_values)
 
 
@@ -1057,7 +1057,7 @@ def lesson_beginning(year: [int, str], half_year: [int, str]):
     else:
         try:
             year = int(year)
-            half_year = int(half_year)
+            half_year = str(int(half_year))
         except ValueError:
             return render_error(400)
         lesson_beginning_with_year_and_half_year = get_lesson_beginning_by_year_and_half_year(year, half_year)

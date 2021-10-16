@@ -2,8 +2,8 @@ from flask import json
 from sqlalchemy.orm.attributes import QueryableAttribute
 
 from app_config import db
-from utils import HalfYearEnum
-from utils import LessonType
+from utils import HALF_YEARS
+from utils import LESSON_TYPES
 
 # Типы
 StudentStates = ("study", "alumnus", "expelled", "academic_leave")
@@ -589,7 +589,7 @@ class TeachingLessons(db.Model):
     day_number_denominator = db.Column(db.INTEGER, nullable=False)
     can_expose_group_leader = db.Column(db.Boolean, nullable=False)
 
-    lesson_type = db.Column(db.Enum(LessonType), nullable=False)
+    lesson_type = db.Column(db.Enum(*LESSON_TYPES), nullable=False)
 
     curriculum_units = db.relationship('CurriculumUnit', secondary='teaching_lesson_and_curriculum_unit',
                                        overlaps="teaching_lessons")
@@ -654,7 +654,8 @@ class LessonsBeginning(db.Model):
     __tablename__ = 'lessons_beginning'
 
     year = db.Column(db.INTEGER, nullable=False, primary_key=True)
-    half_year = db.Column(db.Enum(HalfYearEnum), nullable=False, primary_key=True)
+    half_year = db.Column(db.Enum(*HALF_YEARS),
+                          nullable=False, primary_key=True)
     beginning_date = db.Column(db.DATE, nullable=False)
     end_date = db.Column(db.DATE, nullable=False)
 
