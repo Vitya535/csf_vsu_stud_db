@@ -933,8 +933,7 @@ def mark_attendance_by_student_card_number():
     if student_with_card_number:
         insert_or_update_attendance(student_with_card_number.id, teaching_pair_id, lesson_date, True)
         return jsonify(student_with_card_number.to_dict())
-    else:
-        return jsonify()
+    return jsonify()
 
 
 @app.route('/delete_record', methods=('POST',))
@@ -1087,6 +1086,7 @@ def lesson_beginning(year: [int, str], half_year: [int, str]):
 
 @app.route('/handle_data_for_multiple_edit', methods=('POST',))
 def handle_data_for_multiple_edit():
+    """Обработка данных для редактирования нескольких записей"""
     session['table_name'] = request.values.get('table_name')
     session['ids_to_edit'] = loads(request.values.get('ids_to_edit'))
     return dumps({'success': True}), 200, {'ContentType': 'application/json'}
@@ -1094,6 +1094,7 @@ def handle_data_for_multiple_edit():
 
 @app.route('/multiple_edit', methods=('GET', 'POST'))
 def multiple_edit():
+    """Страничка для редактирования нескольких записей"""
     titles_dict = {'lessons_beginning': 'Начало занятий',
                    'teaching_pairs': 'Учебная пара',
                    'teaching_lessons': 'Учебное занятие'}

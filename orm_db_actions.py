@@ -23,10 +23,8 @@ from model import TeachingPairs
 def get_all_groups_by_semester(semester: int) -> list:
     """Запрос для нахождения всех групп по семестру"""
     groups = db.session.query(StudGroup). \
-        filter(StudGroup.active). \
-        filter(StudGroup.semester == semester). \
-        order_by(StudGroup.year, StudGroup.semester, StudGroup.num,
-                 StudGroup.subnum). \
+        filter(StudGroup.active, StudGroup.semester == semester). \
+        order_by(StudGroup.year, StudGroup.semester, StudGroup.num, StudGroup.subnum). \
         all()
     return groups
 
@@ -34,12 +32,9 @@ def get_all_groups_by_semester(semester: int) -> list:
 def get_group_by_semester_and_group_number(semester: int, group_num: int, group_subnum: int) -> StudGroup:
     """Запрос для нахождения конкретной группы по семестру, номеру группы и подгруппы"""
     group = db.session.query(StudGroup). \
-        filter(StudGroup.active). \
-        filter(StudGroup.semester == semester). \
-        filter(StudGroup.num == group_num). \
-        filter(StudGroup.subnum == group_subnum). \
-        order_by(StudGroup.year, StudGroup.semester, StudGroup.num,
-                 StudGroup.subnum). \
+        filter(StudGroup.active, StudGroup.semester == semester,
+               StudGroup.num == group_num, StudGroup.subnum == group_subnum). \
+        order_by(StudGroup.year, StudGroup.semester, StudGroup.num, StudGroup.subnum). \
         first()
     return group
 
@@ -48,8 +43,8 @@ def get_curriculum_units_by_group_id_and_lesson_type(group_id: int, lesson_type:
     """Запрос для нахождения единиц учебного плана по id группы"""
     curriculum_units = db.session.query(CurriculumUnit). \
         join(CurriculumUnit.teaching_lessons). \
-        filter(CurriculumUnit.stud_group_id == group_id). \
-        filter(TeachingLessons.lesson_type == lesson_type). \
+        filter(CurriculumUnit.stud_group_id == group_id,
+               TeachingLessons.lesson_type == lesson_type). \
         all()
     return curriculum_units
 
@@ -59,10 +54,9 @@ def get_current_half_year(year_of_study: int) -> int:
     # month_number = datetime.now().month
     month_number = 10
     lessons_beginning = db.session.query(LessonsBeginning). \
-        filter(LessonsBeginning.year == year_of_study). \
-        filter(
-        between(month_number, func.month(LessonsBeginning.beginning_date), func.month(LessonsBeginning.end_date))). \
-        first()
+        filter(LessonsBeginning.year == year_of_study,
+               between(month_number, func.month(LessonsBeginning.beginning_date), func.month(LessonsBeginning.end_date))
+               ).first()
     return lessons_beginning.half_year
 
 
@@ -88,11 +82,11 @@ def get_student_by_id_and_fio(semester: int, group_id: int, student_name: str, s
                               student_middlename: str) -> Student:
     """Запрос для получения студента по семестру, id его группы и ФИО"""
     student = db.session.query(Student). \
-        filter(Student.semester == semester). \
-        filter(Student.stud_group_id == group_id). \
-        filter(Student.firstname == student_name). \
-        filter(Student.surname == student_surname). \
-        filter(Student.middlename == student_middlename). \
+        filter(Student.semester == semester,
+               Student.stud_group_id == group_id,
+               Student.firstname == student_name,
+               Student.surname == student_surname,
+               Student.middlename == student_middlename). \
         first()
     return student
 
@@ -101,20 +95,15 @@ def insert_or_update_attendance(student_id: int, teaching_pair_id: int, lesson_d
     """Апдейт или вставка новой ячейки посещаемости по определенной дате для студента с конкретным предметом"""
     # ToDo - db.session.merge здесь попробовать как-нибудь аккуратно
     try:
-        attendance = db.session.query(Attendance). \
-            filter(Attendance.student_id == student_id). \
-            filter(Attendance.teaching_pair_id == teaching_pair_id). \
-            filter(Attendance.lesson_date == lesson_date). \
-            first()
-        if not attendance:
+        attendance_query = db.session.query(Attendance). \
+            filter(Attendance.student_id == student_id,
+                   Attendance.teaching_pair_id == teaching_pair_id,
+                   Attendance.lesson_date == lesson_date)
+        if not attendance_query.first():
             attendance = Attendance(lesson_attendance, lesson_date, student_id, teaching_pair_id)
             db.session.add(attendance)
         else:
-            db.session.query(Attendance). \
-                filter(Attendance.student_id == student_id). \
-                filter(Attendance.teaching_pair_id == teaching_pair_id). \
-                filter(Attendance.lesson_date == lesson_date). \
-                update({'lesson_attendance': lesson_attendance})
+            attendance_query.update({'lesson_attendance': lesson_attendance})
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
@@ -196,8 +185,8 @@ def filter_students_attendance(students: list, subject_name: str) -> list:
         for teaching_lesson in teaching_lessons:
             for teaching_pair in teaching_lesson.teaching_pairs:
                 student_attendance = db.session.query(Attendance). \
-                    filter(Attendance.student_id == student.id). \
-                    filter(Attendance.teaching_pair_id == teaching_pair.pair_id). \
+                    filter(Attendance.student_id == student.id,
+                           Attendance.teaching_pair_id == teaching_pair.pair_id). \
                     first()
                 student_attendance_list.append(student_attendance)
         student.attendance = student_attendance_list
@@ -222,13 +211,14 @@ def get_teaching_pair_ids(subject_name: str) -> list:
 
 
 def get_pk_and_all_ids(table_name: str, all_ids: list) -> tuple:
+    """Получение первичного ключа и кортеж из всех id"""
     table_names_dict = {'lessons_beginning': LessonsBeginning,
                         'teaching_pairs': TeachingPairs,
                         'teaching_lessons': TeachingLessons}
     class_table = table_names_dict.get(table_name)
     pk = inspect(class_table).primary_key
-    all_ids = tuple(tuple(pk[i].type.python_type(item[i]) for i in range(len(item))) for item in all_ids)
-    return pk, all_ids
+    tuple_of_all_ids = tuple(tuple(pk[i].type.python_type(ids[i]) for i in range(len(ids))) for ids in all_ids)
+    return pk, tuple_of_all_ids
 
 
 def delete_record_from_table(table_name: str, all_ids: list):
@@ -269,8 +259,9 @@ def multiple_edit_records(object_from_form_data: [LessonsBeginning, TeachingLess
     try:
         record_class = type(object_from_form_data)
         pk = inspect(record_class).primary_key
-        ids_to_edit = tuple(tuple(pk[i].type.python_type(item[i]) for i in range(len(item))) for item in ids_to_edit)
-        edit_query = db.session.query(record_class).filter(tuple_(*pk).in_(ids_to_edit))
+        tuple_of_ids_to_edit = tuple(tuple(pk[i].type.python_type(item[i]) for i in range(len(item)))
+                                     for item in ids_to_edit)
+        edit_query = db.session.query(record_class).filter(tuple_(*pk).in_(tuple_of_ids_to_edit))
         attrs_and_values_for_update = object_from_form_data.get_attrs_and_values_for_update()
         edit_query.update(attrs_and_values_for_update)
         db.session.commit()

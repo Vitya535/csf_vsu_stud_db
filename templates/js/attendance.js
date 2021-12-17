@@ -3,14 +3,14 @@ let [currentCourse, currentGroupNum, currentGroupSubnum, currentTypeOfLesson, cu
     getDataForAttendance();
 
 function getDataForAttendance() {
-    const currentCourse = $("#course").children("option:selected").val();
-    const group = $("#group").children("option:selected").val();
+    const currentCourse = $("#course > option:selected").val();
+    const group = $("#group > option:selected").val();
     let [currentGroupNum, currentGroupSubnum] = group.split('.');
     if (!currentGroupSubnum) {
         currentGroupSubnum = 0;
     }
-    const currentTypeOfLesson = $("#lesson_type").children("option:selected").val();
-    const currentSubject = $("#lesson").children("option:selected").val();
+    const currentTypeOfLesson = $("#lesson_type > option:selected").val();
+    const currentSubject = $("#lesson > option:selected").val();
     return [currentCourse, currentGroupNum, currentGroupSubnum, currentTypeOfLesson, currentSubject];
 }
 
@@ -19,11 +19,7 @@ function getTdForHighlight() {
     const trWithNowDate = getTrWithNowDate();
     const nowDateIndex = $(trWithNowDate).index();
     if (nowDateIndex !== -1) {
-        const $table = $('#table-attendance');
-        $tdOnOneLineWithNowDate = $table
-            .children('tbody')
-            .children('tr')
-            .find(`td:eq(${nowDateIndex})`);
+        $tdOnOneLineWithNowDate = $(`#table-attendance > tbody > tr > td:eq(${nowDateIndex})`);
     }
     return $tdOnOneLineWithNowDate;
 }
@@ -31,11 +27,7 @@ function getTdForHighlight() {
 function getTrWithNowDate() {
     const nowDate = new Date();
     const nowDateLocaleDateString = nowDate.toLocaleDateString();
-    const $table = $('#table-attendance');
-    const ths = $table
-        .children('thead')
-        .children('tr:first')
-        .children(`th:contains(${nowDateLocaleDateString})`);
+    const ths = $(`#table-attendance > thead > tr:first > th:contains(${nowDateLocaleDateString})`);
     const convertedNowDateLocaleString = nowDateLocaleDateString.replace('.', '-');
     const nowTime = `${nowDate.getHours()}:${nowDate.getMinutes()}:00`;
     const nowDatetime = new Date(`${convertedNowDateLocaleString}T${nowTime}Z`);
@@ -81,10 +73,9 @@ function attendancePostQuery() {
         };
     }
     $.post('/attendance', postParams, function (data) {
-        console.log(data);
         const $table = $('#table-attendance');
         const $tbody = $table.children('tbody');
-        const $tableHeader = $table.children('thead').children('tr:first');
+        const $tableHeader = $table.children('thead > tr:first');
         $('#group, #lesson').empty();
         $tbody.empty();
         $tableHeader.empty();
@@ -92,21 +83,21 @@ function attendancePostQuery() {
         $(data.groups).each(function () {
             $("#group").append(`<option value="${this.num_print}">${this.num_print} группа`);
         });
-        $(`#group option[value='${data.selected_group.num_print}']`).prop('selected', true);
-        $(`#lesson_type option[value='${data.selected_lesson_type}']`).prop('selected', true);
+        $(`#group option[value='${data.selected_group.num_print}'], 
+        #lesson_type option[value='${data.selected_lesson_type}']`).prop('selected', true);
         $(data.subjects).each(function () {
             $("#lesson").append(`<option value="${this.name}">${this.name}`);
         });
         $(`#lesson option[value='${data.selected_subject}']`).prop('selected', true);
         $tableHeader.append('<th scope="col">ФИО студента/Дата проведения занятия');
         $(data.week_dates).each(function () {
-            $tableHeader.append('<th scope="col" class="align-middle">' + this);
+            $tableHeader.append(`<th scope="col" class="align-middle">${this}`);
         });
         $(data.students).each(function () {
             $tbody.append('<tr>');
             const $tr = $tbody.children('tr:last');
-            $tr.append(`<input type="hidden" name="card_number" value="${this.card_number}">`);
-            $tr.append(`<td class="align-middle font-weight-bold">${this.full_name}`);
+            $tr.append(`<input type="hidden" name="card_number" value="${this.card_number}">`)
+                .append(`<td class="align-middle font-weight-bold">${this.full_name}`);
             if (this.attendance) {
                 $(this.attendance).each(function () {
                     if (this.lesson_attendance) {
@@ -140,14 +131,9 @@ function markAttendStudent() {
         $(this).text('-');
         attendanceValue = "";
     }
-    console.log(attendanceValue);
     const clickedTdIndex = $(this).index();
-    const $table = $('#table-attendance');
 
-    const $thForClickedTd = $table
-        .children('thead')
-        .children('tr')
-        .children(`th:eq(${clickedTdIndex - 1})`);
+    const $thForClickedTd = $(`#table-attendance > thead > tr > th:eq(${clickedTdIndex - 1})`);
 
     const teachingPairId = $thForClickedTd.attr('data-teaching_pair_id');
 
@@ -217,7 +203,6 @@ $('#card_number').on('keydown', function (e) {
                 teaching_pair_id: teaching_pair_id
             },
             function (studentWithCardNumber) {
-                console.log(studentWithCardNumber);
                 if ($.isEmptyObject(studentWithCardNumber)) {
                     $.toast({
                         heading: 'Error',
@@ -260,8 +245,9 @@ $(function () {
             highlightNowDateAttendance();
         }
         $('#table-attendance > tbody > tr').each(function () {
-            $(this).children('td:not(:first)').on('dblclick', highlightBlue);
-            $(this).children('td:not(:first)').on('dblclick', markAttendStudent);
+            $(this).children('td:not(:first)')
+                .on('dblclick', highlightBlue)
+                .on('dblclick', markAttendStudent);
         });
 
         $('.custom-select').on('change', attendancePostQuery);
