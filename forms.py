@@ -33,7 +33,7 @@ class _PersonForm:
             validators.Optional(),
             validators.Length(min=3, max=45),
             validators.Regexp("^[a-z0-9_]+$",
-                              message="Учётное имя может содержать только латинкие символы, цифры и знак подчёркивания"
+                              message="Учётное имя может содержать только латинские символы, цифры и знак подчёркивания"
                               ),
             Unique(clazz.login, get_session=lambda: db.session, message='Логин занят')
         ]
@@ -361,19 +361,23 @@ class TeachingLessonForm(MainForm):
     pair_number_denominator = IntegerField('Номер пары по знаменателю',
                                            (validators.DataRequired(),
                                             validators.NumberRange(min=1, max=7,
-                                                                   message='Номер пары по знаменателю должен быть в диапазоне от 1 до 7')))
+                                                                   message='Номер пары по знаменателю должен быть '
+                                                                           'в диапазоне от 1 до 7')))
     day_number_denominator = IntegerField('Номер дня по знаменателю',
                                           (validators.DataRequired(),
                                            validators.NumberRange(min=1, max=7,
-                                                                  message='Номер дня по знаменателю должен быть в диапазоне от 1 до 7')))
+                                                                  message='Номер дня по знаменателю должен быть '
+                                                                          'в диапазоне от 1 до 7')))
     pair_number_numerator = IntegerField('Номер пары по числителю',
                                          (validators.DataRequired(),
                                           validators.NumberRange(min=1, max=7,
-                                                                 message='Номер пары по числителю должен быть в диапазоне от 1 до 7')))
+                                                                 message='Номер пары по числителю должен быть '
+                                                                         'в диапазоне от 1 до 7')))
     day_number_numerator = IntegerField('Номер дня по числителю',
                                         (validators.DataRequired(),
                                          validators.NumberRange(min=1, max=7,
-                                                                message='Номер дня по числителю должен быть в диапазоне от 1 до 7')))
+                                                                message='Номер дня по числителю должен быть '
+                                                                        'в диапазоне от 1 до 7')))
     can_expose_group_leader = BooleanField('Выставляет посещаемость староста')
     lesson_type = SelectField('Тип занятия',
                               choices=LESSON_TYPES_CHOICES)

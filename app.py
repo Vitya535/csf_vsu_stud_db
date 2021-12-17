@@ -327,10 +327,10 @@ def students_unallocated():
         .filter(Student.status == "study") \
         .filter(Student.stud_group_id.is_(None)) \
         .order_by(Student.semester, Student.surname, Student.firstname, Student.middlename)
-    students = q.all()
+    studying_students = q.all()
 
     result = {}
-    for s in students:
+    for s in studying_students:
         if s.semester not in result:
             result[s.semester] = []
         result[s.semester].append(s)
@@ -350,10 +350,10 @@ def students_unallocated():
         form.students_selected.query_factory = lambda: _students
 
         form.stud_group.query_factory = \
-            lambda: db.session.query(StudGroup) \
-                .filter(StudGroup.semester == semester) \
-                .filter(StudGroup.active) \
-                .order_by(StudGroup.num, StudGroup.subnum).all()
+            lambda: db.session.query(StudGroup). \
+            filter(StudGroup.semester == semester). \
+            filter(StudGroup.active). \
+            order_by(StudGroup.num, StudGroup.subnum).all()
 
         forms.append(form)
 
@@ -589,7 +589,8 @@ def curriculum_unit_copy(id):
         filter(StudGroup.year == cu.stud_group.year). \
         filter(StudGroup.semester == cu.stud_group.semester). \
         filter(not_(StudGroup.id.in_(
-        db.session.query(CurriculumUnit.stud_group_id).filter(CurriculumUnit.subject_id == cu.subject.id).subquery()))). \
+            db.session.query(CurriculumUnit.stud_group_id).
+            filter(CurriculumUnit.subject_id == cu.subject.id).subquery()))). \
         order_by(StudGroup.num, StudGroup.subnum).all()
 
     stud_group_ids = set()
@@ -664,7 +665,7 @@ def att_marks(id):
         # Создание записей AttMark если их нет для данной единицы учебного плана
         _students = db.session.query(Student).filter(Student.stud_group_id == cu.stud_group.id). \
             filter(not_(Student.id.in_(
-            db.session.query(AttMark.student_id).filter(AttMark.curriculum_unit_id == cu.id).subquery()))). \
+                db.session.query(AttMark.student_id).filter(AttMark.curriculum_unit_id == cu.id).subquery()))). \
             all()
         if len(_students) > 0:
             for s in _students:
@@ -673,7 +674,7 @@ def att_marks(id):
                 db.session.add(att_mark)
             db.session.commit()
 
-    curriculum_units.sort(key=lambda cu: (cu.stud_group.num, cu.stud_group.subnum))
+    curriculum_units.sort(key=lambda cur: (cur.stud_group.num, cur.stud_group.subnum))
     cu_union = CurriculumUnitUnion(curriculum_units)
 
     form = CurriculumUnitUnionForm(request.form, obj=cu_union)
@@ -830,11 +831,11 @@ def attendance():
         group_subnum = request.values.get('group_subnum', current_user_group.subnum, type=int)
         course = request.values.get('course', current_user.course, type=int)
 
-    selected_lesson_type = request.values.get('lesson_type', 'lection')
+    selected_lesson_type = request.values.get('lesson_type', 'Лекция')
 
     # current_year = datetime.now().year
     current_year = 2018
-    current_half_year = get_current_half_year(current_year)
+    current_half_year = int(get_current_half_year(current_year))
 
     semester = 2 * (course - 1) + current_half_year
 
@@ -843,7 +844,8 @@ def attendance():
     curriculum_units = get_curriculum_units_by_group_id_and_lesson_type(group.id, selected_lesson_type)
 
     selected_subject = None
-    if subjects_from_units := [unit.subject.to_dict() for unit in curriculum_units]:
+    subjects_from_units = tuple(unit.subject.to_dict() for unit in curriculum_units)
+    if subjects_from_units is not None:
         selected_subject = request.values.get('lesson', subjects_from_units[0]['name'])
 
     # teaching_lesson_id = get_teaching_lesson_id_by_subject_name(selected_subject)
@@ -859,10 +861,10 @@ def attendance():
 
     common_context_values = {
         'course': course,
-        'groups': [group.to_dict() for group in groups],
+        'groups': tuple(group.to_dict() for group in groups),
         'selected_lesson_type': selected_lesson_type,
         'selected_subject': selected_subject,
-        'students': [filtered_student.to_dict() for filtered_student in students_with_filtered_attendance],
+        'students': tuple(filtered_student.get_dict() for filtered_student in students_with_filtered_attendance),
         'subjects': subjects_from_units,
         'selected_group': group.to_dict(),
         'week_dates': current_and_next_week_text_dates,
@@ -881,7 +883,7 @@ def attendance():
 def mark_attendance_for_student():
     """Урл для отметки посещаемости у студента"""
 
-    lesson_date = datetime.strptime(request.values.get('lesson_date'), '%d.%m.%Y').strftime('%Y-%m-%d')
+    lesson_date = datetime.strptime(request.values.get('lesson_date')[:10], '%d.%m.%Y').strftime('%Y-%m-%d')
 
     attendance_value = request.values.get('attendance_value', type=bool)
     group_num = request.values.get('group_num', type=int)
@@ -896,7 +898,7 @@ def mark_attendance_for_student():
     current_year = 2018
     current_half_year = get_current_half_year(current_year)
 
-    semester = 2 * (course - 1) + current_half_year
+    semester = 2 * (course - 1) + int(current_half_year)
 
     group = get_group_by_semester_and_group_number(semester, group_num, group_subnum)
     student_to_mark = get_student_by_id_and_fio(semester, group.id, student_name, student_surname, student_middlename)
@@ -1057,7 +1059,7 @@ def lesson_beginning(year: [int, str], half_year: [int, str]):
     else:
         try:
             year = int(year)
-            half_year = str(int(half_year))
+            half_year = int(half_year)
         except ValueError:
             return render_error(400)
         lesson_beginning_with_year_and_half_year = get_lesson_beginning_by_year_and_half_year(year, half_year)

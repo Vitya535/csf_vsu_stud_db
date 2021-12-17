@@ -117,11 +117,10 @@ function attendancePostQuery() {
                         $tr.append('<td class="align-middle h2">');
                     }
                 });
-            } else {
-                $(data.week_dates).each(function () {
-                    $tr.append('<td class="align-middle h2">');
-                });
             }
+            $(data.week_dates).each(function () {
+                $tr.append('<td class="align-middle h2">');
+            });
         });
         $('#checkbox_is_groupleader_mark_attendance').prop('checked', data.can_expose_group_leader);
         currentCourse = course;
@@ -133,20 +132,22 @@ function attendancePostQuery() {
 }
 
 function markAttendStudent() {
-    let attendanceValue = "";
+    let attendanceValue;
     if ($(this).text() === '' || $(this).text() === '-') {
         $(this).text('+');
         attendanceValue = "true";
     } else {
         $(this).text('-');
+        attendanceValue = "";
     }
+    console.log(attendanceValue);
     const clickedTdIndex = $(this).index();
     const $table = $('#table-attendance');
 
     const $thForClickedTd = $table
         .children('thead')
         .children('tr')
-        .children(`th:eq(${clickedTdIndex})`);
+        .children(`th:eq(${clickedTdIndex - 1})`);
 
     const teachingPairId = $thForClickedTd.attr('data-teaching_pair_id');
 
@@ -241,7 +242,7 @@ $('#card_number').on('keydown', function (e) {
 });
 
 function highlightBlue() {
-    $(previousClickedTd).css({backgroundColor: 'red'});
+    $(previousClickedTd).css({backgroundColor: 'white'});
     previousClickedTd = $(this);
     $(previousClickedTd).css({backgroundColor: 'blue'});
 }
@@ -253,22 +254,18 @@ function highlightNowDateAttendance() {
     $tdOnOneLineWithNowDate.css({backgroundColor: 'red', cursor: 'pointer'});
 }
 
-$(document)
-    .ready(function () {
+$(function () {
         let $tdOnOneLineWithNowDate = getTdForHighlight();
         if ($tdOnOneLineWithNowDate) {
             highlightNowDateAttendance();
-            $tdOnOneLineWithNowDate.on('click', highlightBlue);
         }
+        $('#table-attendance > tbody > tr').each(function () {
+            $(this).children('td:not(:first)').on('dblclick', highlightBlue);
+            $(this).children('td:not(:first)').on('dblclick', markAttendStudent);
+        });
 
         $('.custom-select').on('change', attendancePostQuery);
         $('#checkbox_is_groupleader_mark_attendance').on('click', updateIsGroupLeaderMarkAttendance);
-
-        {% if current_user.role_name in ('GroupLeader') and can_expose_group_leader_value %}
-            $tdOnOneLineWithNowDate.on('dblclick', markAttendStudent);
-        {% elif current_user.role_name in ('Teacher', 'AdminUser') %}
-            $('#table-attendance').on('dblclick', 'td', markAttendStudent);
-        {% endif %}
     })
     .ajaxComplete(function () {
         let $tdOnOneLineWithNowDate = getTdForHighlight();

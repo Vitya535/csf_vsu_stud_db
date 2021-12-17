@@ -453,10 +453,14 @@ class Student(BaseModel, Person, _ObjectWithSemester):
 
     @property
     def role_name(self):
-        if not self.group_leader:
-            return 'Student'
-        else:
+        if self.group_leader:
             return 'GroupLeader'
+        return 'Student'
+
+    def get_dict(self):
+        return {"full_name": self.full_name,
+                "card_number": self.card_number,
+                "attendance": self.attendance}
 
 
 class AdminUser(db.Model, Person):

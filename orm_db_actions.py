@@ -156,7 +156,7 @@ def get_lesson_dates_for_subject(subject_name: str, year: int, half_year: int) -
         join(TeachingLessons.curriculum_units). \
         filter(CurriculumUnit.id == curriculum_unit.id). \
         all()
-    lessons_beginning = db.session.query(LessonsBeginning).get((year, half_year))
+    lessons_beginning = db.session.query(LessonsBeginning).get((year, str(half_year)))
     datetime_now = datetime.now()
     current_week_number = datetime_now.isocalendar()[1]
     beginning_week_number = lessons_beginning.beginning_date.isocalendar()[1]
@@ -168,14 +168,16 @@ def get_lesson_dates_for_subject(subject_name: str, year: int, half_year: int) -
                                                    teaching_lesson.day_number_numerator).strftime('%d.%m.%Y')
             for teaching_pair in teaching_lesson.teaching_pairs:
                 lesson_dates.append(
-                    f"{lesson_date} {teaching_pair.time_of_beginning.strftime('%H:%M')} - {teaching_pair.time_of_ending.strftime('%H:%M')}")
+                    f"{lesson_date} {teaching_pair.time_of_beginning.strftime('%H:%M')} - "
+                    f"{teaching_pair.time_of_ending.strftime('%H:%M')}")
     else:
         for teaching_lesson in teaching_lessons:
             lesson_date = datetime.fromisocalendar(datetime_now.year, current_week_number,
                                                    teaching_lesson.day_number_denominator).strftime('%d.%m.%Y')
             for teaching_pair in teaching_lesson.teaching_pairs:
                 lesson_dates.append(
-                    f"{lesson_date} {teaching_pair.time_of_beginning.strftime('%H:%M')} - {teaching_pair.time_of_ending.strftime('%H:%M')}")
+                    f"{lesson_date} {teaching_pair.time_of_beginning.strftime('%H:%M')} - "
+                    f"{teaching_pair.time_of_ending.strftime('%H:%M')}")
     return lesson_dates
 
 
@@ -219,16 +221,25 @@ def get_teaching_pair_ids(subject_name: str) -> list:
     return teaching_pair_ids
 
 
+def get_pk_and_all_ids(table_name: str, all_ids: list) -> tuple:
+    table_names_dict = {'lessons_beginning': LessonsBeginning,
+                        'teaching_pairs': TeachingPairs,
+                        'teaching_lessons': TeachingLessons}
+    class_table = table_names_dict.get(table_name)
+    pk = inspect(class_table).primary_key
+    all_ids = tuple(tuple(pk[i].type.python_type(item[i]) for i in range(len(item))) for item in all_ids)
+    return pk, all_ids
+
+
 def delete_record_from_table(table_name: str, all_ids: list):
     """Удаление из таблицы одной или нескольких записей"""
     try:
+        pk, all_ids = get_pk_and_all_ids(table_name, all_ids)
         table_names_dict = {'lessons_beginning': LessonsBeginning,
                             'teaching_pairs': TeachingPairs,
                             'teaching_lessons': TeachingLessons}
         class_table = table_names_dict.get(table_name)
-        pk = inspect(class_table).primary_key
-        all_ids = tuple(tuple(pk[i].type.python_type(item[i]) for i in range(len(item))) for item in all_ids)
-        db.session.query(class_table).filter(tuple_(*inspect(class_table).primary_key).in_(all_ids)).delete()
+        db.session.query(class_table).filter(tuple_(*pk).in_(all_ids)).delete()
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
@@ -236,13 +247,12 @@ def delete_record_from_table(table_name: str, all_ids: list):
 
 
 def get_object_for_form_filling(table_name: str, all_ids: list) -> [LessonsBeginning, TeachingLessons, TeachingPairs]:
-    """Получение обьекта для заполнения полей формы для multiple редаткирования"""
+    """Получение обьекта для заполнения полей формы для multiple редактирования"""
+    pk, all_ids = get_pk_and_all_ids(table_name, all_ids)
     table_names_dict = {'lessons_beginning': LessonsBeginning,
                         'teaching_pairs': TeachingPairs,
                         'teaching_lessons': TeachingLessons}
     class_table = table_names_dict.get(table_name)
-    pk = inspect(class_table).primary_key
-    all_ids = tuple(tuple(pk[i].type.python_type(item[i]) for i in range(len(item))) for item in all_ids)
     records_from_db = db.session.query(class_table).filter(tuple_(*pk).in_(all_ids)).all()
     if len(records_from_db) == 1:
         return records_from_db[0]

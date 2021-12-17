@@ -6,7 +6,8 @@ class Config:
     DEBUG = True
 
     # урл для БД Ильи
-    # SQLALCHEMY_DATABASE_URI = "mysql+mysqlconnector://fkn_att2:fkn_att2@localhost/fkn_att2?auth_plugin=mysql_native_password"
+    # SQLALCHEMY_DATABASE_URI =
+    # "mysql+mysqlconnector://fkn_att2:fkn_att2@localhost/fkn_att2?auth_plugin=mysql_native_password"
 
     # урл для БД Виктора
     SQLALCHEMY_DATABASE_URI = "mysql+mysqlconnector://vitya535:dffgrtrw43;Q@localhost/check_attendance_db"
