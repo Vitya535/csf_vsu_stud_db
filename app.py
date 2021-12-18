@@ -21,6 +21,7 @@ from orm_db_actions import get_all_groups_by_semester
 from orm_db_actions import get_all_lessons_beginning
 from orm_db_actions import get_all_teaching_lessons
 from orm_db_actions import get_all_teaching_pairs
+from orm_db_actions import get_attr_can_expose_group_leader_by_teaching_lesson_id
 from orm_db_actions import get_current_half_year
 from orm_db_actions import get_curriculum_units_by_group_id_and_lesson_type
 from orm_db_actions import get_group_by_semester_and_group_number
@@ -351,9 +352,9 @@ def students_unallocated():
 
         form.stud_group.query_factory = \
             lambda: db.session.query(StudGroup). \
-            filter(StudGroup.semester == semester). \
-            filter(StudGroup.active). \
-            order_by(StudGroup.num, StudGroup.subnum).all()
+                filter(StudGroup.semester == semester). \
+                filter(StudGroup.active). \
+                order_by(StudGroup.num, StudGroup.subnum).all()
 
         forms.append(form)
 
@@ -589,7 +590,7 @@ def curriculum_unit_copy(id):
         filter(StudGroup.year == cu.stud_group.year). \
         filter(StudGroup.semester == cu.stud_group.semester). \
         filter(not_(StudGroup.id.in_(
-            db.session.query(CurriculumUnit.stud_group_id).
+        db.session.query(CurriculumUnit.stud_group_id).
             filter(CurriculumUnit.subject_id == cu.subject.id).subquery()))). \
         order_by(StudGroup.num, StudGroup.subnum).all()
 
@@ -665,7 +666,7 @@ def att_marks(id):
         # Создание записей AttMark если их нет для данной единицы учебного плана
         _students = db.session.query(Student).filter(Student.stud_group_id == cu.stud_group.id). \
             filter(not_(Student.id.in_(
-                db.session.query(AttMark.student_id).filter(AttMark.curriculum_unit_id == cu.id).subquery()))). \
+            db.session.query(AttMark.student_id).filter(AttMark.curriculum_unit_id == cu.id).subquery()))). \
             all()
         if len(_students) > 0:
             for s in _students:
@@ -848,9 +849,9 @@ def attendance():
     if subjects_from_units is not None:
         selected_subject = request.values.get('lesson', subjects_from_units[0]['name'])
 
-    # teaching_lesson_id = get_teaching_lesson_id_by_subject_name(selected_subject)
-    #
-    # can_expose_group_leader_value = get_attr_can_expose_group_leader_by_teaching_lesson_id(teaching_lesson_id)
+    teaching_lesson_id = get_teaching_lesson_id_by_subject_name(selected_subject)
+
+    can_expose_group_leader_value = get_attr_can_expose_group_leader_by_teaching_lesson_id(teaching_lesson_id)
 
     students_with_filtered_attendance = filter_students_attendance(group.students, selected_subject)
 
@@ -869,7 +870,7 @@ def attendance():
         'selected_group': group.to_dict(),
         'week_dates': current_and_next_week_text_dates,
         'teaching_pair_ids': teaching_pair_ids,
-        # 'can_expose_group_leader': can_expose_group_leader_value
+        'can_expose_group_leader': can_expose_group_leader_value
     }
 
     if request.method == 'GET':

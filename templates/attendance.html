@@ -28,7 +28,7 @@
             <h1>Посещаемость</h1>
         </div>
         <div class="col my-auto">
-            {% if current_user.role_name in ('Teacher') or (current_user.role_name in ('GroupLeader') and can_expose_group_leader_value) %}
+            {% if current_user.role_name in ('Teacher') or (current_user.role_name in ('GroupLeader') and can_expose_group_leader) %}
                 <input class="form-control" type="number" size="20" id="card_number" name="card_number" placeholder="Введите номер карты" required>
             {% endif %}
         </div>

@@ -91,9 +91,9 @@ def get_student_by_id_and_fio(semester: int, group_id: int, student_name: str, s
     return student
 
 
-def insert_or_update_attendance(student_id: int, teaching_pair_id: int, lesson_date, lesson_attendance: bool):
+def insert_or_update_attendance(student_id: int, teaching_pair_id: int,
+                                lesson_date: str, lesson_attendance: bool) -> None:
     """Апдейт или вставка новой ячейки посещаемости по определенной дате для студента с конкретным предметом"""
-    # ToDo - db.session.merge здесь попробовать как-нибудь аккуратно
     try:
         attendance_query = db.session.query(Attendance). \
             filter(Attendance.student_id == student_id,
@@ -110,7 +110,7 @@ def insert_or_update_attendance(student_id: int, teaching_pair_id: int, lesson_d
 
 
 def update_can_expose_group_leader_attr_by_teaching_lesson_id(teaching_lesson_id: int,
-                                                              can_expose_group_leader_value: bool):
+                                                              can_expose_group_leader_value: bool) -> None:
     """Апдейт атрибута can_expose_group_leader для учебного занятия по его id"""
     try:
         db.session.query(TeachingLessons). \
@@ -221,7 +221,7 @@ def get_pk_and_all_ids(table_name: str, all_ids: list) -> tuple:
     return pk, tuple_of_all_ids
 
 
-def delete_record_from_table(table_name: str, all_ids: list):
+def delete_record_from_table(table_name: str, all_ids: list) -> None:
     """Удаление из таблицы одной или нескольких записей"""
     try:
         pk, all_ids = get_pk_and_all_ids(table_name, all_ids)
@@ -254,7 +254,8 @@ def get_object_for_form_filling(table_name: str, all_ids: list) -> [LessonsBegin
     return record_for_multiple_edit
 
 
-def multiple_edit_records(object_from_form_data: [LessonsBeginning, TeachingLessons, TeachingPairs], ids_to_edit: list):
+def multiple_edit_records(object_from_form_data: [LessonsBeginning, TeachingLessons, TeachingPairs],
+                          ids_to_edit: list) -> None:
     """Редактирование нескольких записей в таблице"""
     try:
         record_class = type(object_from_form_data)

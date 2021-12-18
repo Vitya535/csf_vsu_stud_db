@@ -157,7 +157,7 @@ function markAttendStudent() {
 }
 
 function updateIsGroupLeaderMarkAttendance() {
-    const canExposeGroupLeaderValue = $(this).is(':checked');
+    const canExposeGroupLeaderValue = $(this).prop('checked');
     let canExposeGroupLeaderTextValue = "";
     if (canExposeGroupLeaderValue) {
         canExposeGroupLeaderTextValue = "true";
@@ -170,16 +170,14 @@ function updateIsGroupLeaderMarkAttendance() {
 }
 
 $('#card_number').on('keydown', function (e) {
-    if (e.keyCode === 13 && $(this).val()) {
+    if (e.key === 'Enter' && $(this).val()) {
         const cardNumber = $(this).val().replace(/^0+/, '');
 
         const lessonDate = new Date().toLocaleDateString();
 
         const $table = $('#table-attendance');
         const $thWithLessonDate = $table
-            .children('thead')
-            .children('tr:first')
-            .children(`th:contains(${lessonDate}):first`);
+            .children(`thead > tr:first > th:contains(${lessonDate}):first`);
 
         const nowDateIndex = $thWithLessonDate.index();
 
@@ -193,8 +191,7 @@ $('#card_number').on('keydown', function (e) {
         let $tdToMark;
         if (nowDateIndex !== -1 && cardNumberIndex !== -1) {
             $tdToMark = $tbody
-                .children(`tr:eq(${cardNumberIndex})`)
-                .children(`td:eq(${nowDateIndex})`);
+                .children(`tr:eq(${cardNumberIndex}) > td:eq(${nowDateIndex})`);
         }
 
         $.post('/mark_by_card_number', {
@@ -257,6 +254,6 @@ $(function () {
         let $tdOnOneLineWithNowDate = getTdForHighlight();
         if ($tdOnOneLineWithNowDate) {
             highlightNowDateAttendance();
-            $tdOnOneLineWithNowDate.on('click', highlightBlue);
+            $tdOnOneLineWithNowDate.on('dblclick', highlightBlue);
         }
     });
