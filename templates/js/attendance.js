@@ -99,19 +99,20 @@ function attendancePostQuery() {
             $tr.append(`<input type="hidden" name="card_number" value="${this.card_number}">`)
                 .append(`<td class="align-middle font-weight-bold">${this.full_name}`);
             if (this.attendance) {
+                console.log($(this.attendance));
                 $(this.attendance).each(function () {
-                    if (this.lesson_attendance) {
+                    if (this.lesson_attendance === true) {
                         $tr.append('<td class="align-middle h2">+');
-                    } else if (!this.lesson_attendance) {
+                    } else if (this.lesson_attendance === false) {
                         $tr.append('<td class="align-middle h2">-');
                     } else {
                         $tr.append('<td class="align-middle h2">');
                     }
                 });
             }
-            $(data.week_dates).each(function () {
+            for (let i = this.attendance.length; i < data.week_dates.length; i++) {
                 $tr.append('<td class="align-middle h2">');
-            });
+            }
         });
         $('#checkbox_is_groupleader_mark_attendance').prop('checked', data.can_expose_group_leader);
         currentCourse = course;

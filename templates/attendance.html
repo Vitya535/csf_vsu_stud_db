@@ -94,15 +94,15 @@
                 <input type="hidden" name="card_number" value="{{ student.card_number }}">
                 <td class="align-middle font-weight-bold">{{ student.full_name }}</td>
                 {% for attend in student.attendance %}
-                    {% if attend is not none %}
+                    <td class="align-middle h2">
+                    {% if attend %}
                         {% if attend.lesson_attendance is sameas true %}
-                            <td class="align-middle h2">+</td>
-                        {% elif attend.lesson_attendance is sameas false %}
-                            <td class="align-middle h2">-</td>
+                            +
+                        {% else %}
+                            -
                         {% endif %}
-                    {% else %}
-                        <td class="align-middle h2"></td>
                     {% endif %}
+                    </td>
                 {% endfor %}
                 {% for _ in range(student.attendance|length, week_dates|length) %}
                     <td class="align-middle h2"></td>

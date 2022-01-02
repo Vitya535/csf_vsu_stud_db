@@ -460,7 +460,7 @@ class Student(BaseModel, Person, _ObjectWithSemester):
     def get_dict(self):
         return {"full_name": self.full_name,
                 "card_number": self.card_number,
-                "attendance": self.attendance}
+                "attendance": tuple(item.get_dict() if item is not None else None for item in self.attendance)}
 
 
 class AdminUser(db.Model, Person):
@@ -651,6 +651,9 @@ class Attendance(BaseModel):
         self.lesson_date = lesson_date
         self.student_id = student_id
         self.teaching_pair_id = teaching_pair_id
+
+    def get_dict(self):
+        return {'lesson_attendance': self.lesson_attendance}
 
 
 class LessonsBeginning(db.Model):
