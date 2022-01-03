@@ -99,7 +99,6 @@ function attendancePostQuery() {
             $tr.append(`<input type="hidden" name="card_number" value="${this.card_number}">`)
                 .append(`<td class="align-middle font-weight-bold">${this.full_name}`);
             if (this.attendance) {
-                console.log($(this.attendance));
                 $(this.attendance).each(function () {
                     if (this.lesson_attendance === true) {
                         $tr.append('<td class="align-middle h2">+');

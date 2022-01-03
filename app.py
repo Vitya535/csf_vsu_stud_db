@@ -873,8 +873,6 @@ def attendance():
         'can_expose_group_leader': can_expose_group_leader_value
     }
 
-    print(common_context_values)
-
     if request.method == 'GET':
         return render_template('attendance.html',
                                **common_context_values,
