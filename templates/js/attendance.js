@@ -90,8 +90,8 @@ function attendancePostQuery() {
         });
         $(`#lesson option[value='${data.selected_subject}']`).prop('selected', true);
         $tableHeader.append('<th scope="col">ФИО студента/Дата проведения занятия');
-        $(data.week_dates).each(function () {
-            $tableHeader.append(`<th scope="col" class="align-middle">${this}`);
+        $(data.week_dates).each(function (index) {
+            $tableHeader.append(`<th scope="col" class="align-middle" data-teaching_pair_id="${data.teaching_pair_ids[index]}">${this}`);
         });
         $(data.students).each(function () {
             $tbody.append('<tr>');
@@ -119,12 +119,15 @@ function attendancePostQuery() {
         currentGroupSubnum = groupSubnum;
         currentTypeOfLesson = lessonType;
         currentSubject = lesson;
+        bindEvents();
     });
 }
 
 function markAttendStudent() {
+    let [currentCourse, currentGroupNum, currentGroupSubnum, currentTypeOfLesson, currentSubject] =
+        getDataForAttendance();
     let attendanceValue;
-    if ($(this).text() === '' || $(this).text() === '-') {
+    if ($(this).text().trim() === '' || $(this).text().trim() === '-') {
         $(this).text('+');
         attendanceValue = "true";
     } else {
@@ -239,24 +242,22 @@ function highlightNowDateAttendance() {
     $tdOnOneLineWithNowDate.css({backgroundColor: 'red', cursor: 'pointer'});
 }
 
-$(function () {
-        let $tdOnOneLineWithNowDate = getTdForHighlight();
-        if ($tdOnOneLineWithNowDate) {
-            highlightNowDateAttendance();
-        }
-        $('#table-attendance > tbody > tr').each(function () {
-            $(this).children('td:not(:first)')
-                .on('dblclick', highlightBlue)
-                .on('dblclick', markAttendStudent);
-        });
-
-        $('.custom-select').on('change', attendancePostQuery);
-        $('#checkbox_is_groupleader_mark_attendance').on('click', updateIsGroupLeaderMarkAttendance);
-    })
-    .ajaxComplete(function () {
-        let $tdOnOneLineWithNowDate = getTdForHighlight();
-        if ($tdOnOneLineWithNowDate) {
-            highlightNowDateAttendance();
-            $tdOnOneLineWithNowDate.on('dblclick', highlightBlue);
-        }
+function bindEvents() {
+    let $tdOnOneLineWithNowDate = getTdForHighlight();
+    if ($tdOnOneLineWithNowDate) {
+        highlightNowDateAttendance();
+        $tdOnOneLineWithNowDate.on('dblclick', highlightBlue);
+    }
+    $('#table-attendance > tbody > tr').each(function () {
+        $(this).children('td:not(:first)')
+            .on('dblclick', highlightBlue)
+            .on('dblclick', markAttendStudent);
     });
+
+    $('.custom-select').on('change', attendancePostQuery);
+    $('#checkbox_is_groupleader_mark_attendance').on('click', updateIsGroupLeaderMarkAttendance);
+}
+
+$(function () {
+    bindEvents();
+});
