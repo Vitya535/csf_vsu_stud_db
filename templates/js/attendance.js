@@ -75,7 +75,7 @@ function attendancePostQuery() {
     $.post('/attendance', postParams, function (data) {
         const $table = $('#table-attendance');
         const $tbody = $table.children('tbody');
-        const $tableHeader = $table.children('thead > tr:first');
+        const $tableHeader = $table.children('thead').children('tr:first');
         $('#group, #lesson').empty();
         $tbody.empty();
         $tableHeader.empty();
@@ -177,11 +177,13 @@ $('#card_number').on('keydown', function (e) {
 
         const $table = $('#table-attendance');
         const $thWithLessonDate = $table
-            .children(`thead > tr:first > th:contains(${lessonDate}):first`);
+            .children('thead')
+            .children('tr:first')
+            .children(`th:contains(${lessonDate}):first`);
 
         const nowDateIndex = $thWithLessonDate.index();
 
-        const teaching_pair_id = $thWithLessonDate.attr('data-teaching_pair_id');
+        const teachingPairId = $thWithLessonDate.attr('data-teaching_pair_id');
 
         const $tbody = $table.children('tbody');
         const cardNumberIndex = $tbody
@@ -191,13 +193,14 @@ $('#card_number').on('keydown', function (e) {
         let $tdToMark;
         if (nowDateIndex !== -1 && cardNumberIndex !== -1) {
             $tdToMark = $tbody
-                .children(`tr:eq(${cardNumberIndex}) > td:eq(${nowDateIndex})`);
+                .children(`tr:eq(${cardNumberIndex})`)
+                .children(`td:eq(${nowDateIndex})`);
         }
 
         $.post('/mark_by_card_number', {
                 card_number: cardNumber,
                 lesson_date: lessonDate,
-                teaching_pair_id: teaching_pair_id
+                teaching_pair_id: teachingPairId
             },
             function (studentWithCardNumber) {
                 if ($.isEmptyObject(studentWithCardNumber)) {
