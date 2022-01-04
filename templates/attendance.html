@@ -96,7 +96,7 @@
                 {% for attend in student.attendance %}
                     <td class="align-middle h2">
                     {% if attend %}
-                        {% if attend.lesson_attendance is sameas true %}
+                        {% if attend.lesson_attendance %}
                             +
                         {% else %}
                             -

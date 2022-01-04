@@ -172,8 +172,8 @@ function updateIsGroupLeaderMarkAttendance() {
     $.post('/update_is_groupleader_mark_attendance', postParams);
 }
 
-$('#card_number').on('keydown', function (e) {
-    if (e.key === 'Enter' && $(this).val()) {
+$('#card_number').on('change', function () {
+    //if (e.key === 'Enter' && $(this).val()) {
         const cardNumber = $(this).val().replace(/^0+/, '');
 
         const lessonDate = new Date().toLocaleDateString();
@@ -226,7 +226,7 @@ $('#card_number').on('keydown', function (e) {
                 }
             });
         $(this).val('');
-    }
+    //}
 });
 
 function highlightBlue() {
