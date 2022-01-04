@@ -853,10 +853,13 @@ def attendance():
 
     can_expose_group_leader_value = get_attr_can_expose_group_leader_by_teaching_lesson_id(teaching_lesson_id)
 
-    students_with_filtered_attendance = filter_students_attendance(group.students, selected_subject)
-
     current_and_next_week_text_dates = get_lesson_dates_for_subject(selected_subject, current_year,
                                                                     current_half_year)
+
+    set_text_dates = set(datetime.strptime(text_date[:10], '%d.%m.%Y').strftime('%Y-%m-%d')
+                         for text_date in current_and_next_week_text_dates)
+
+    students_with_filtered_attendance = filter_students_attendance(group.students, selected_subject, set_text_dates)
 
     teaching_pair_ids = get_teaching_pair_ids(selected_subject)
 

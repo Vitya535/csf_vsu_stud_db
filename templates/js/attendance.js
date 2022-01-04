@@ -127,9 +127,9 @@ function markAttendStudent() {
     let [currentCourse, currentGroupNum, currentGroupSubnum, currentTypeOfLesson, currentSubject] =
         getDataForAttendance();
     let attendanceValue;
-    if ($(this).text().trim() === '' || $(this).text().trim() === '-') {
+    if (['', '-'].indexOf($(this).text().trim()) !== -1) {
         $(this).text('+');
-        attendanceValue = "true";
+        attendanceValue = "1";
     } else {
         $(this).text('-');
         attendanceValue = "";

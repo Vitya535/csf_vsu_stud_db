@@ -170,7 +170,7 @@ def get_lesson_dates_for_subject(subject_name: str, year: int, half_year: int) -
     return lesson_dates
 
 
-def filter_students_attendance(students: list, subject_name: str) -> list:
+def filter_students_attendance(students: list, subject_name: str, set_text_dates: set) -> list:
     """Фильтрация посещаемости студентов для более удобного вывода на страницу"""
     curriculum_unit = db.session.query(CurriculumUnit). \
         join(CurriculumUnit.subject). \
@@ -184,9 +184,10 @@ def filter_students_attendance(students: list, subject_name: str) -> list:
         student_attendance_list = []
         for teaching_lesson in teaching_lessons:
             for teaching_pair in teaching_lesson.teaching_pairs:
-                student_attendance = db.session.query(Attendance). \
+                student_attendance = db.session.query(Attendance).\
                     filter(Attendance.student_id == student.id,
-                           Attendance.teaching_pair_id == teaching_pair.pair_id). \
+                           Attendance.teaching_pair_id == teaching_pair.pair_id,
+                           Attendance.lesson_date.in_(set_text_dates)).\
                     first()
                 student_attendance_list.append(student_attendance)
         student.attendance = student_attendance_list
