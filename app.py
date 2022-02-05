@@ -1,5 +1,9 @@
 import os
 from datetime import datetime
+from datetime import date
+from calendar import monthrange
+from calendar import firstweekday
+from datetime import timedelta
 from itertools import islice
 from json import dumps
 from json import loads
@@ -15,6 +19,9 @@ from forms import StudGroupForm, StudentForm, StudentSearchForm, SubjectForm, Te
 from forms import StudentsUnallocatedForm, LessonBeginningForm, TeachingPairsForm, TeachingLessonForm
 from model import StudGroup, Subject, Teacher, Student, CurriculumUnit, CurriculumUnitUnion, AttMark, AdminUser, \
     Person, LESSON_TYPES, LessonsBeginning, TeachingPairs, TeachingLessons
+from orm_db_actions import get_attend_lessons
+from orm_db_actions import get_count_of_all_pairs_for_lessons
+from orm_db_actions import get_count_of_attend_lessons
 from orm_db_actions import delete_record_from_table
 from orm_db_actions import filter_students_attendance
 from orm_db_actions import get_all_groups_by_semester
@@ -31,6 +38,7 @@ from orm_db_actions import get_lesson_dates_for_subject
 from orm_db_actions import get_object_for_form_filling
 from orm_db_actions import get_student_by_card_number
 from orm_db_actions import get_student_by_id_and_fio
+from orm_db_actions import get_subjects_for_group_student
 from orm_db_actions import get_teaching_lesson_by_id
 from orm_db_actions import get_teaching_lesson_id_by_subject_name
 from orm_db_actions import get_teaching_pair_by_id
@@ -818,6 +826,82 @@ app.register_error_handler(404, lambda code: render_error(404))
 
 # stud_attendance
 
+@app.route("/attendance_report/all_courses")
+def attendance_report_all_courses():
+    """Веб-страничка для отображения отчетов со всех предметов"""
+    subjects_dict = {'Иностранный язык': 'english',
+                     'История': 'history',
+                     'Математический анализ': 'maths',
+                     'Введение в программирование': 'basic_programming',
+                     'Теоретические основы информатики': 'basic_informatics',
+                     "Системы подготовки электронных документов": 'sped',
+                     'Основы речевого воздействия': 'language',
+                     'Русский язык для устной и письменной коммуникации': 'russian_language_for_communication',
+                     'Введение в программную инженерию': 'program_engineering',
+                     'Информатика': 'informatics',
+                     'Дискретная математика': 'discrete_maths',
+                     'Web-программирование': 'web_programming',
+                     'Системы подготовки электронных документов и ОП': 'sped_op',
+                     'Русский язык': 'russian_language',
+                     'Правоведение': 'pravovedenie',
+                     'Программирование': 'programming',
+                     'Практикум на ЭВМ по дисциплине "Программирование"': 'programming_practice',
+                     'Фундаментальная и компьютерная алгебра': 'computer_algebra',
+                     'Технологии программирования': 'tech_programming'}
+    subjects_for_group_student = get_subjects_for_group_student(current_user.stud_group_id)
+    list_of_attend_lessons_count = get_count_of_attend_lessons(subjects_for_group_student, current_user.stud_group_id,
+                                                               current_user.id)
+    list_of_count_teaching_lessons_with_pairs = get_count_of_all_pairs_for_lessons(subjects_for_group_student,
+                                                                                   current_user.stud_group_id)
+    return render_template('attendance_report_all_courses.html',
+                           subjects=subjects_for_group_student,
+                           subjects_dict=subjects_dict,
+                           list_of_attend_lessons_count=list_of_attend_lessons_count,
+                           list_of_teaching_lessons_with_pairs=list_of_count_teaching_lessons_with_pairs)
+
+
+@app.route("/attendance_report/current_course/<subject_name>/<display_mode>")
+def attendance_report_current_course(subject_name: str, display_mode: str):
+    """Веб-страничка для отображения отчета о посещаемости студента по предмету"""
+    subjects_dict = {'english': 'Иностранный язык',
+                     'history': 'История',
+                     'maths': 'Математический анализ',
+                     'basic_programming': 'Введение в программирование',
+                     'basic_informatics': 'Теоретические основы информатики',
+                     'sped': "Системы подготовки электронных документов",
+                     'language': 'Основы речевого воздействия',
+                     'russian_language_for_communication': 'Русский язык для устной и письменной коммуникации',
+                     'program_engineering': 'Введение в программную инженерию',
+                     'informatics': 'Информатика',
+                     'discrete_maths': 'Дискретная математика',
+                     'web_programming': 'Web-программирование',
+                     'sped_op': 'Системы подготовки электронных документов и ОП',
+                     'russian_language': 'Русский язык',
+                     'pravovedenie': 'Правоведение',
+                     'programming': 'Программирование',
+                     'programming_practice': 'Практикум на ЭВМ по дисциплине "Программирование"',
+                     'computer_algebra': 'Фундаментальная и компьютерная алгебра',
+                     'tech_programming': 'Технологии программирования'}
+    dict_for_dates = {'all': (date(2022, 1, 1), date(2022, 6, 30)),
+                      'all_passed': (date(2022, 1, 1), date.today()),
+                      'month': (date(datetime.today().year, datetime.today().month,
+                                     datetime.today().replace(day=1).day),
+                                date(datetime.today().year, datetime.today().month,
+                                     monthrange(datetime.today().year, datetime.today().month)[1])),
+                      'week': (date.today() - timedelta(days=date.today().weekday()),
+                               date.today() - timedelta(days=date.today().weekday()) + timedelta(days=6)),
+                      'day': (datetime.today(), datetime.today())}
+    dates = dict_for_dates.get(display_mode)
+    russian_subject_name = subjects_dict.get(subject_name)
+    list_of_attend_lessons = get_attend_lessons(russian_subject_name, current_user.stud_group_id, current_user.id,
+                                                dates[0], dates[1])
+    return render_template('attendance_report_current_course.html',
+                           subject_name=subject_name,
+                           russian_subject_name=russian_subject_name,
+                           display_mode=display_mode,
+                           list_of_attend_lessons=list_of_attend_lessons)
+
+
 @app.route("/attendance", methods=('GET', 'POST'))
 def attendance():
     """Веб-страничка для отображения посещаемости"""
@@ -863,6 +947,27 @@ def attendance():
 
     teaching_pair_ids = get_teaching_pair_ids(selected_subject)
 
+    subjects_dict = {'Иностранный язык': 'english',
+                     'История': 'history',
+                     'Математический анализ': 'maths',
+                     'Введение в программирование': 'basic_programming',
+                     'Теоретические основы информатики': 'basic_informatics',
+                     "Системы подготовки электронных документов": 'sped',
+                     'Основы речевого воздействия': 'language',
+                     'Русский язык для устной и письменной коммуникации': 'russian_language_for_communication',
+                     'Введение в программную инженерию': 'program_engineering',
+                     'Информатика': 'informatics',
+                     'Дискретная математика': 'discrete_maths',
+                     'Web-программирование': 'web_programming',
+                     'Системы подготовки электронных документов и ОП': 'sped_op',
+                     'Русский язык': 'russian_language',
+                     'Правоведение': 'pravovedenie',
+                     'Программирование': 'programming',
+                     'Практикум на ЭВМ по дисциплине "Программирование"': 'programming_practice',
+                     'Фундаментальная и компьютерная алгебра': 'computer_algebra',
+                     'Технологии программирования': 'tech_programming'}
+    english_subject_name = subjects_dict.get(selected_subject)
+
     common_context_values = {
         'course': course,
         'groups': tuple(group.to_dict() for group in groups),
@@ -873,7 +978,8 @@ def attendance():
         'selected_group': group.to_dict(),
         'week_dates': current_and_next_week_text_dates,
         'teaching_pair_ids': teaching_pair_ids,
-        'can_expose_group_leader': can_expose_group_leader_value
+        'can_expose_group_leader': can_expose_group_leader_value,
+        'english_subject_name': english_subject_name
     }
 
     if request.method == 'GET':

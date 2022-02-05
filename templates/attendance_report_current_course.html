@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% from "_macros_bootstrap" import bootstrap_form_input, bootstrap_form_button with context %}
+    <meta charset="UTF-8">
+    <title>{{ russian_subject_name }}: Посещаемость</title>
+    {% include '_header.html' %}
+</head>
+<body>
+    {% include '_menu.html' %}
+    <div class="container-fluid text-center">
+        <ul class="nav nav-tabs justify-content-center mt-3">
+            <li class="nav-item">
+                <a class="nav-link active" href="{{ url_for('attendance_report_current_course', subject_name=subject_name, display_mode='all') }}">Текущий курс</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('attendance_report_all_courses') }}">Все курсы</a>
+            </li>
+        </ul>
+        <div class="row mt-3">
+            <div class="col my-auto"></div>
+            <div class="col my-auto">
+                <h3>{{ russian_subject_name }}: Посещаемость</h3>
+            </div>
+            <div class="col my-auto">
+                <ul class="nav nav-pills">
+                    <li class="nav-item">
+                        {% if display_mode == 'all' %}
+                            <a class="nav-link active" href="{{ url_for('attendance_report_current_course', subject_name=subject_name, display_mode='all') }}">Все</a>
+                        {% else %}
+                            <a class="nav-link" href="{{ url_for('attendance_report_current_course', subject_name=subject_name, display_mode='all') }}">Все</a>
+                        {% endif %}
+                    </li>
+                    <li class="nav-item">
+                        {% if display_mode == 'all_passed' %}
+                            <a class="nav-link active" href="{{ url_for('attendance_report_current_course', subject_name=subject_name, display_mode='all_passed') }}">Все прошедшие</a>
+                        {% else %}
+                            <a class="nav-link" href="{{ url_for('attendance_report_current_course', subject_name=subject_name, display_mode='all_passed') }}">Все прошедшие</a>
+                        {% endif %}
+                    </li>
+                    <li class="nav-item">
+                        {% if display_mode == 'month' %}
+                            <a class="nav-link active" href="{{ url_for('attendance_report_current_course', subject_name=subject_name, display_mode='month') }}">Месяц</a>
+                        {% else %}
+                            <a class="nav-link" href="{{ url_for('attendance_report_current_course', subject_name=subject_name, display_mode='month') }}">Месяц</a>
+                        {% endif %}
+                    </li>
+                    <li class="nav-item">
+                        {% if display_mode == 'week' %}
+                            <a class="nav-link active" href="{{ url_for('attendance_report_current_course', subject_name=subject_name, display_mode='week') }}">Неделя</a>
+                        {% else %}
+                            <a class="nav-link" href="{{ url_for('attendance_report_current_course', subject_name=subject_name, display_mode='week') }}">Неделя</a>
+                        {% endif %}
+                    </li>
+                    <li class="nav-item">
+                        {% if display_mode == 'day' %}
+                            <a class="nav-link active" href="{{ url_for('attendance_report_current_course', subject_name=subject_name, display_mode='day') }}">День</a>
+                        {% else %}
+                            <a class="nav-link" href="{{ url_for('attendance_report_current_course', subject_name=subject_name, display_mode='day') }}">День</a>
+                        {% endif %}
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <table class="table" id="table-attendance-report">
+                <thead>
+                    <tr>
+                        <th scope="col">Дата</th>
+                        <th scope="col">Тип занятия</th>
+                        <th scope="col">Статус</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in list_of_attend_lessons %}
+                        <tr>
+                            <td class="align-middle">{{ item[0] }}</td>
+                            <td class="align-middle">{{ item[1] }}</td>
+                            <td class="align-middle">
+                                {% if item[2] is not none %}
+                                    {% if item[2] %}
+                                        Присутствовал
+                                    {% else %}
+                                        Отсутствовал
+                                    {% endif %}
+                                {% else %}
+                                    ?
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

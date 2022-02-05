@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <title>Посещаемость</title>
     {% include '_header.html' %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='attendance.css') }}"/>
 </head>
 <body>
 {% include '_menu.html' %}
@@ -21,6 +22,17 @@
                     {% endif %}
                     <label class="form-check-label" for="checkbox_is_groupleader_mark_attendance">Староста отмечает
                         посещаемость</label>
+                </div>
+            {% endif %}
+            {% if current_user.role_name in ('Student', 'GroupLeader') %}
+                <div class="form-check float-left" id="checkbox_attendance_report_form">
+                    <a href="{{ url_for('attendance_report_current_course', subject_name=english_subject_name, display_mode='all') }}" class="report-link">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-file-earmark-check-fill" viewBox="0 0 16 16">
+                            <path d="M9.293 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.707A1 1 0 0 0 13.707 4L10 .293A1 1 0 0 0 9.293 0zM9.5 3.5v-2l3 3h-2a1 1 0 0 1-1-1zm1.354 4.354-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 9.793l2.646-2.647a.5.5 0 0 1 .708.708z">
+                            </path>
+                        </svg>
+                        Отчёт
+                    </a>
                 </div>
             {% endif %}
         </div>

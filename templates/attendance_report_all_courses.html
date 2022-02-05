@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% from "_macros_bootstrap" import bootstrap_form_input, bootstrap_form_button with context %}
+    <meta charset="UTF-8">
+    <title>Все курсы: Посещаемость</title>
+    {% include '_header.html' %}
+</head>
+<body>
+    {% include '_menu.html' %}
+    <div class="container-fluid text-center">
+        <ul class="nav nav-tabs justify-content-center mt-3">
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('attendance_report_current_course', subject_name=subjects_dict.get(subjects[0].name), display_mode='all') }}">Текущий курс</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="{{ url_for('attendance_report_all_courses') }}">Все курсы</a>
+            </li>
+        </ul>
+        <div class="row mt-3">
+            <table class="table" id="table-attendance-report">
+                <thead>
+                    <tr>
+                        <th scope="col">Курс</th>
+                        <th scope="col">Посещаемость</th>
+                        <th scope="col">Посещенные занятия</th>
+                        <th scope="col">Процент по всем посещенным занятиям</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for subject_and_count_attend_lessons_count, count_lessons_with_pairs in subjects|zip(list_of_attend_lessons_count)|zip(list_of_teaching_lessons_with_pairs) %}
+                        <tr>
+                            <td class="align-middle">{{ subject_and_count_attend_lessons_count[0].name }}</td>
+                            <td class="align-middle">
+                                <a class="nav-link" href="{{ url_for('attendance_report_current_course', subject_name=subjects_dict.get(subject_and_count_attend_lessons_count[0].name), display_mode='all') }}">Посещаемость</a>
+                            </td>
+                            <td class="align-middle">{{ subject_and_count_attend_lessons_count[1] }}</td>
+                            <td class="align-middle">
+                                {% if count_lessons_with_pairs %}
+                                    {{ (subject_and_count_attend_lessons_count[1] / count_lessons_with_pairs) * 100 }}%
+                                {% else %}
+                                    0.0%
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    <tr>
+                        <td class="align-middle"><b>Средняя посещаемость</b></td>
+                        <td class="align-middle"></td>
+                        <td class="align-middle"></td>
+                        <td class="align-middle">{{ (list_of_attend_lessons_count|sum / list_of_teaching_lessons_with_pairs|sum) * 100 }}%</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
