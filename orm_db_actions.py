@@ -3,6 +3,7 @@
 from datetime import datetime
 from datetime import date
 from datetime import timedelta
+from calendar import monthrange
 
 from sqlalchemy import between
 from sqlalchemy import func
@@ -256,38 +257,28 @@ def get_student_by_card_number(card_number: int) -> Student:
     return student
 
 
-def get_lesson_dates_for_subject(subject_name: str, year: int, half_year: int) -> list:
+def get_lesson_dates_by_teaching_lesson(teaching_lesson_id: int, display_mode: str) -> list:
     """Запрос для получения дат занятия по парам по названию предмета"""
-    curriculum_unit = db.session.query(CurriculumUnit).\
-        join(CurriculumUnit.subject).\
-        filter(Subject.name == subject_name).\
-        first()
-    teaching_lessons = db.session.query(TeachingLessons).\
-        join(TeachingLessons.curriculum_units).\
-        filter(CurriculumUnit.id == curriculum_unit.id).\
-        all()
-    lessons_beginning = db.session.query(LessonsBeginning).get((year, str(half_year)))
+    teaching_lesson = get_teaching_lesson_by_id(teaching_lesson_id)
     datetime_now = datetime.now()
-    current_week_number = datetime_now.isocalendar()[1]
-    beginning_week_number = lessons_beginning.beginning_date.isocalendar()[1]
-    diff_between_week_numbers = current_week_number - beginning_week_number
     lesson_dates = []
-    if diff_between_week_numbers & 1:
-        for teaching_lesson in teaching_lessons:
-            lesson_date = datetime.fromisocalendar(datetime_now.year, current_week_number,
+    first_date = datetime.today().replace(day=1)
+    last_date_dict = {'Месяц': monthrange(first_date.year, first_date.month)[1],
+                      'Неделя': 5 - first_date.weekday()}
+    last_date = datetime.today().replace(day=last_date_dict.get(display_mode))
+    first_week_number = first_date.isocalendar()[1]
+    last_week_number = last_date.isocalendar()[1]
+    for week_num in range(first_week_number, last_week_number + 1):
+        if week_num & 1:
+            lesson_date = datetime.fromisocalendar(datetime_now.year, week_num,
                                                    teaching_lesson.day_number_numerator).strftime('%d.%m.%Y')
-            for teaching_pair in teaching_lesson.teaching_pairs:
-                lesson_dates.append(
-                    f"{lesson_date} {teaching_pair.time_of_beginning.strftime('%H:%M')} - "
-                    f"{teaching_pair.time_of_ending.strftime('%H:%M')}")
-    else:
-        for teaching_lesson in teaching_lessons:
-            lesson_date = datetime.fromisocalendar(datetime_now.year, current_week_number,
+        else:
+            lesson_date = datetime.fromisocalendar(datetime_now.year, week_num,
                                                    teaching_lesson.day_number_denominator).strftime('%d.%m.%Y')
-            for teaching_pair in teaching_lesson.teaching_pairs:
-                lesson_dates.append(
-                    f"{lesson_date} {teaching_pair.time_of_beginning.strftime('%H:%M')} - "
-                    f"{teaching_pair.time_of_ending.strftime('%H:%M')}")
+        for teaching_pair in teaching_lesson.teaching_pairs:
+            lesson_dates.append(
+                f"{lesson_date} {teaching_pair.time_of_beginning.strftime('%H:%M')} - "
+                f"{teaching_pair.time_of_ending.strftime('%H:%M')}")
     return lesson_dates
 
 
@@ -315,20 +306,12 @@ def filter_students_attendance(students: list, subject_name: str, set_text_dates
     return students
 
 
-def get_teaching_pair_ids(subject_name: str) -> list:
+def get_teaching_pair_ids(teaching_lesson_id: int) -> list:
     """Получение списка id учебных пар по названию предмета"""
-    curriculum_unit = db.session.query(CurriculumUnit).\
-        join(CurriculumUnit.subject).\
-        filter(Subject.name == subject_name).\
-        first()
-    teaching_lessons = db.session.query(TeachingLessons).\
-        join(TeachingLessons.curriculum_units).\
-        filter(CurriculumUnit.id == curriculum_unit.id).\
-        all()
+    teaching_lesson = db.session.query(TeachingLessons).get(teaching_lesson_id)
     teaching_pair_ids = []
-    for teaching_lesson in teaching_lessons:
-        for teaching_pair in teaching_lesson.teaching_pairs:
-            teaching_pair_ids.append(teaching_pair.pair_id)
+    for teaching_pair in teaching_lesson.teaching_pairs:
+        teaching_pair_ids.append(teaching_pair.pair_id)
     return teaching_pair_ids
 
 
@@ -412,7 +395,7 @@ def get_all_teaching_pairs() -> list:
 
 def get_lesson_beginning_by_year_and_half_year(year: int, half_year: int) -> LessonsBeginning:
     """Запрос для получения начала учебных занятий в конкретном году и полугодии"""
-    lesson_beginning = db.session.query(LessonsBeginning).get((year, half_year))
+    lesson_beginning = db.session.query(LessonsBeginning).get((year, str(half_year)))
     return lesson_beginning
 
 

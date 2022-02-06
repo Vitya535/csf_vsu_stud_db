@@ -90,6 +90,17 @@
                 {% endfor %}
             </select>
         </div>
+        <div class="col p-0">
+            <select class="custom-select" style="border-radius: 0;" id="display-mode">
+                {% for display_mode in display_modes %}
+                    {% if display_mode == selected_display_mode %}
+                        <option value="{{ display_mode }}" selected>{{ display_mode }}</option>
+                    {% else %}
+                        <option value="{{ display_mode }}">{{ display_mode }}</option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+        </div>
     </div>
     <table class="table" id="table-attendance">
         <thead>

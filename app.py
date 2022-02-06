@@ -34,7 +34,7 @@ from orm_db_actions import get_curriculum_units_by_group_id_and_lesson_type
 from orm_db_actions import get_group_by_semester_and_group_number
 from orm_db_actions import get_group_of_current_user_by_id
 from orm_db_actions import get_lesson_beginning_by_year_and_half_year
-from orm_db_actions import get_lesson_dates_for_subject
+from orm_db_actions import get_lesson_dates_by_teaching_lesson
 from orm_db_actions import get_object_for_form_filling
 from orm_db_actions import get_student_by_card_number
 from orm_db_actions import get_student_by_id_and_fio
@@ -937,15 +937,17 @@ def attendance():
 
     can_expose_group_leader_value = get_attr_can_expose_group_leader_by_teaching_lesson_id(teaching_lesson_id)
 
-    current_and_next_week_text_dates = get_lesson_dates_for_subject(selected_subject, current_year,
-                                                                    current_half_year)
+    display_modes = ('Месяц', 'Неделя')
+    selected_display_mode = request.values.get('selected_display_mode', 'Неделя')
+
+    current_text_dates = get_lesson_dates_by_teaching_lesson(teaching_lesson_id, selected_display_mode)
 
     set_text_dates = set(datetime.strptime(text_date[:10], '%d.%m.%Y').strftime('%Y-%m-%d')
-                         for text_date in current_and_next_week_text_dates)
+                         for text_date in current_text_dates)
 
     students_with_filtered_attendance = filter_students_attendance(group.students, selected_subject, set_text_dates)
 
-    teaching_pair_ids = get_teaching_pair_ids(selected_subject)
+    teaching_pair_ids = get_teaching_pair_ids(teaching_lesson_id) * len(current_text_dates)
 
     subjects_dict = {'Иностранный язык': 'english',
                      'История': 'history',
@@ -976,10 +978,12 @@ def attendance():
         'students': tuple(filtered_student.get_dict() for filtered_student in students_with_filtered_attendance),
         'subjects': subjects_from_units,
         'selected_group': group.to_dict(),
-        'week_dates': current_and_next_week_text_dates,
+        'week_dates': current_text_dates,
         'teaching_pair_ids': teaching_pair_ids,
         'can_expose_group_leader': can_expose_group_leader_value,
-        'english_subject_name': english_subject_name
+        'english_subject_name': english_subject_name,
+        'selected_display_mode': selected_display_mode,
+        'display_modes': display_modes
     }
 
     if request.method == 'GET':

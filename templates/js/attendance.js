@@ -1,5 +1,5 @@
 let previousClickedTd;
-let [currentCourse, currentGroupNum, currentGroupSubnum, currentTypeOfLesson, currentSubject] =
+let [currentCourse, currentGroupNum, currentGroupSubnum, currentTypeOfLesson, currentSubject, currentDisplayMode] =
     getDataForAttendance();
 
 function getDataForAttendance() {
@@ -11,7 +11,8 @@ function getDataForAttendance() {
     }
     const currentTypeOfLesson = $("#lesson_type > option:selected").val();
     const currentSubject = $("#lesson > option:selected").val();
-    return [currentCourse, currentGroupNum, currentGroupSubnum, currentTypeOfLesson, currentSubject];
+    const currentDisplayMode = $("#display-mode > option:selected").val();
+    return [currentCourse, currentGroupNum, currentGroupSubnum, currentTypeOfLesson, currentSubject, currentDisplayMode];
 }
 
 function getTdForHighlight() {
@@ -34,7 +35,7 @@ function getTrWithNowDate() {
     $(ths).each(function () {
        let [dateWithLowerTime, upperTimeString] = $(this).text().split('-');
        const lowerTimeString = `${dateWithLowerTime.split(' ')[1]}:00`;
-       upperTimeString = `${upperTimeString.trimLeft()}:00`;
+       upperTimeString = `${upperTimeString.trimStart()}:00`;
        const lowerDatetime = new Date(`${convertedNowDateLocaleString}T${lowerTimeString}Z`);
        const upperDatetime = new Date(`${convertedNowDateLocaleString}T${upperTimeString}Z`);
        if (nowDatetime > lowerDatetime && nowDatetime < upperDatetime) {
@@ -44,24 +45,27 @@ function getTrWithNowDate() {
 }
 
 function attendancePostQuery() {
-    const [course, groupNum, groupSubnum, lessonType, lesson] = getDataForAttendance();
+    const [course, groupNum, groupSubnum, lessonType, lesson, displayMode] = getDataForAttendance();
     let postParams;
     if (currentCourse !== course) {
         postParams = {
-            course: course
+            course: course,
+            selected_display_mode: displayMode
         };
     } else if (currentGroupNum !== groupNum || currentGroupSubnum !== groupSubnum) {
         postParams = {
             course: course,
             group_num: groupNum,
-            group_subnum: groupSubnum
+            group_subnum: groupSubnum,
+            selected_display_mode: displayMode
         };
     } else if (currentTypeOfLesson !== lessonType) {
         postParams = {
             course: course,
             group_num: groupNum,
             group_subnum: groupSubnum,
-            lesson_type: lessonType
+            lesson_type: lessonType,
+            selected_display_mode: displayMode
         };
     } else if (currentSubject !== lesson) {
         postParams = {
@@ -69,14 +73,24 @@ function attendancePostQuery() {
             group_num: groupNum,
             group_subnum: groupSubnum,
             lesson_type: lessonType,
-            lesson: lesson
+            lesson: lesson,
+            selected_display_mode: displayMode
+        };
+    } else if (currentDisplayMode !== displayMode) {
+        postParams = {
+            course: course,
+            group_num: groupNum,
+            group_subnum: groupSubnum,
+            lesson_type: lessonType,
+            lesson: lesson,
+            selected_display_mode: displayMode
         };
     }
     $.post('/attendance', postParams, function (data) {
         const $table = $('#table-attendance');
         const $tbody = $table.children('tbody');
         const $tableHeader = $table.children('thead').children('tr:first');
-        $('#group, #lesson').empty();
+        $('#group, #lesson, #display-mode').empty();
         $tbody.empty();
         $tableHeader.empty();
         $(`#course option[value='${data.course}']`).prop('selected', true);
@@ -89,6 +103,10 @@ function attendancePostQuery() {
             $("#lesson").append(`<option value="${this.name}">${this.name}`);
         });
         $(`#lesson option[value='${data.selected_subject}']`).prop('selected', true);
+        $(data.display_modes).each( function () {
+            $("#display-mode").append(`<option value="${this}">${this}`);
+        });
+        $(`#display-mode option[value='${data.selected_display_mode}']`).prop('selected', true);
         $tableHeader.append('<th scope="col">ФИО студента/Дата проведения занятия');
         $(data.week_dates).each(function (index) {
             $tableHeader.append(`<th scope="col" class="align-middle" data-teaching_pair_id="${data.teaching_pair_ids[index]}">${this}`);
@@ -114,17 +132,18 @@ function attendancePostQuery() {
             }
         });
         $('#checkbox_is_groupleader_mark_attendance').prop('checked', data.can_expose_group_leader);
-        currentCourse = course;
-        currentGroupNum = groupNum;
-        currentGroupSubnum = groupSubnum;
-        currentTypeOfLesson = lessonType;
-        currentSubject = lesson;
-        bindEvents();
     });
+    currentCourse = course;
+    currentGroupNum = groupNum;
+    currentGroupSubnum = groupSubnum;
+    currentTypeOfLesson = lessonType;
+    currentSubject = lesson;
+    currentDisplayMode = displayMode;
+    bindEvents();
 }
 
 function markAttendStudent() {
-    let [currentCourse, currentGroupNum, currentGroupSubnum, currentTypeOfLesson, currentSubject] =
+    let [currentCourse, currentGroupNum, currentGroupSubnum, currentTypeOfLesson, currentSubject, currentDisplayMode] =
         getDataForAttendance();
     let attendanceValue;
     if (['', '-'].indexOf($(this).text().trim()) !== -1) {
@@ -246,16 +265,24 @@ function bindEvents() {
     let $tdOnOneLineWithNowDate = getTdForHighlight();
     if ($tdOnOneLineWithNowDate) {
         highlightNowDateAttendance();
-        $tdOnOneLineWithNowDate.on('dblclick', highlightBlue);
+        $tdOnOneLineWithNowDate
+            .off('dblclick', highlightBlue)
+            .on('dblclick', highlightBlue);
     }
     $('#table-attendance > tbody > tr').each(function () {
         $(this).children('td:not(:first)')
+            .off('dblclick', highlightBlue)
             .on('dblclick', highlightBlue)
+            .off('dblclick', markAttendStudent)
             .on('dblclick', markAttendStudent);
     });
 
-    $('.custom-select').on('change', attendancePostQuery);
-    $('#checkbox_is_groupleader_mark_attendance').on('click', updateIsGroupLeaderMarkAttendance);
+    $('.custom-select')
+        .off('change', attendancePostQuery)
+        .on('change', attendancePostQuery);
+    $('#checkbox_is_groupleader_mark_attendance')
+        .off('click', updateIsGroupLeaderMarkAttendance)
+        .on('click', updateIsGroupLeaderMarkAttendance);
 }
 
 $(function () {
