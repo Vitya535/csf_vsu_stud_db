@@ -104,10 +104,26 @@
     </div>
     <table class="table" id="table-attendance">
         <thead>
-        <tr> <!-- 12 дат (2 недели) -->
-            <th scope="col">ФИО студента/Дата проведения занятия</th>
+        <tr>
+            <th scope="col" class="align-middle">ФИО студента/Дата проведения занятия</th>
             {% for week_date, teaching_pair_id in week_dates|zip(teaching_pair_ids) %}
-                <th scope="col" class="align-middle" data-teaching_pair_id="{{ teaching_pair_id }}">{{ week_date }}</th>
+                <th scope="col" class="align-middle" data-teaching_pair_id="{{ teaching_pair_id }}">
+                    {% if loop.first %}
+                        <div class="float-left">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-caret-left-fill" id="dates-left" viewBox="0 0 16 16">
+                                <path d="m3.86 8.753 5.482 4.796c.646.566 1.658.106 1.658-.753V3.204a1 1 0 0 0-1.659-.753l-5.48 4.796a1 1 0 0 0 0 1.506z"></path>
+                            </svg>
+                        </div>
+                    {% endif %}
+                    {{ week_date }}
+                    {% if loop.last %}
+                        <div class="float-right">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-caret-right-fill float-right" id="dates-right" viewBox="0 0 16 16">
+                                <path d="m12.14 8.753-5.482 4.796c-.646.566-1.658.106-1.658-.753V3.204a1 1 0 0 1 1.659-.753l5.48 4.796a1 1 0 0 1 0 1.506z"></path>
+                            </svg>
+                        </div>
+                    {% endif %}
+                </th>
             {% endfor %}
         </tr>
         </thead>

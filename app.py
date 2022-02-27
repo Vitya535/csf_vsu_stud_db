@@ -1,8 +1,8 @@
 import os
-from datetime import datetime
-from datetime import date
 from calendar import monthrange
-from calendar import firstweekday
+from calendar import monthcalendar
+from datetime import date
+from datetime import datetime
 from datetime import timedelta
 from itertools import islice
 from json import dumps
@@ -19,16 +19,16 @@ from forms import StudGroupForm, StudentForm, StudentSearchForm, SubjectForm, Te
 from forms import StudentsUnallocatedForm, LessonBeginningForm, TeachingPairsForm, TeachingLessonForm
 from model import StudGroup, Subject, Teacher, Student, CurriculumUnit, CurriculumUnitUnion, AttMark, AdminUser, \
     Person, LESSON_TYPES, LessonsBeginning, TeachingPairs, TeachingLessons
-from orm_db_actions import get_attend_lessons
-from orm_db_actions import get_count_of_all_pairs_for_lessons
-from orm_db_actions import get_count_of_attend_lessons
 from orm_db_actions import delete_record_from_table
 from orm_db_actions import filter_students_attendance
 from orm_db_actions import get_all_groups_by_semester
 from orm_db_actions import get_all_lessons_beginning
 from orm_db_actions import get_all_teaching_lessons
 from orm_db_actions import get_all_teaching_pairs
+from orm_db_actions import get_attend_lessons
 from orm_db_actions import get_attr_can_expose_group_leader_by_teaching_lesson_id
+from orm_db_actions import get_count_of_all_pairs_for_lessons
+from orm_db_actions import get_count_of_attend_lessons
 from orm_db_actions import get_current_half_year
 from orm_db_actions import get_curriculum_units_by_group_id_and_lesson_type
 from orm_db_actions import get_group_by_semester_and_group_number
@@ -902,6 +902,104 @@ def attendance_report_current_course(subject_name: str, display_mode: str):
                            list_of_attend_lessons=list_of_attend_lessons)
 
 
+@app.route("/dates_change", methods=('POST',))
+def attendance_dates_change():
+    """POST-запрос для пролистывания дат"""
+    if current_user.role_name not in ('Student', 'GroupLeader'):
+        group_num = request.values.get('group_num', 1, type=int)
+        group_subnum = request.values.get('group_subnum', 0, type=int)
+        course = request.values.get('course', 1, type=int)
+    else:
+        current_user_group = get_group_of_current_user_by_id(current_user.stud_group_id)
+        group_num = request.values.get('group_num', current_user_group.num, type=int)
+        group_subnum = request.values.get('group_subnum', current_user_group.subnum, type=int)
+        course = request.values.get('course', current_user.course, type=int)
+
+    selected_lesson_type = request.values.get('lesson_type', 'Лекция')
+
+    # current_year = datetime.now().year
+    current_year = 2018
+    current_half_year = int(get_current_half_year(current_year))
+
+    semester = 2 * (course - 1) + current_half_year
+
+    group = get_group_by_semester_and_group_number(semester, group_num, group_subnum)
+    curriculum_units = get_curriculum_units_by_group_id_and_lesson_type(group.id, selected_lesson_type)
+
+    selected_subject = None
+    subjects_from_units = tuple(unit.subject.to_dict() for unit in curriculum_units)
+    if subjects_from_units is not None:
+        selected_subject = request.values.get('lesson', subjects_from_units[0]['name'])
+
+    teaching_lesson_id = get_teaching_lesson_id_by_subject_name(selected_subject)
+
+    can_expose_group_leader_value = get_attr_can_expose_group_leader_by_teaching_lesson_id(teaching_lesson_id)
+
+    selected_display_mode = request.values.get('selected_display_mode', 'Неделя')
+
+    increase = request.values.get('increase', type=int)
+
+    session['first_week_number'] += increase
+    session['last_week_number'] += increase
+    if increase == -1:
+        if session['first_week_number'] >= 0 and \
+                session['first_week_number'] % len(monthcalendar(session['year'], session['month'])) == 0:
+            session['month'] -= 1
+        if session['month'] == 0:
+            session['year'] -= 1
+            session['month'] = 12
+            session['first_week_number'] = 52
+            session['last_week_number'] = 52
+    elif increase == 1:
+        if session['last_week_number'] <= 52 and \
+                session['last_week_number'] % len(monthcalendar(session['year'], session['month'])) == 0:
+            session['month'] += 1
+        if session['month'] == 12:
+            session['year'] += 1
+            session['month'] = 1
+            session['first_week_number'] = 1
+            session['last_week_number'] = 1
+    elif increase == 5:
+        session['month'] += 1
+        if session['last_week_number'] >= 52:
+            session['first_week_number'] = 48
+            session['last_week_number'] = 52
+        if session['month'] == 12:
+            session['year'] += 1
+            session['month'] = 1
+            session['first_week_number'] = 1
+            session['last_week_number'] = 5
+    elif increase == -5:
+        session['month'] -= 1
+        if session['first_week_number'] <= 0:
+            session['first_week_number'] = 1
+            session['last_week_number'] = 5
+        if session['month'] == 0:
+            session['year'] -= 1
+            session['month'] = 12
+            session['first_week_number'] = 48
+            session['last_week_number'] = 52
+    current_text_dates = get_lesson_dates_by_teaching_lesson(teaching_lesson_id, session['first_week_number'],
+                                                             session['last_week_number'], session['year'])
+
+    set_text_dates = set(datetime.strptime(text_date[:10], '%d.%m.%Y').strftime('%Y-%m-%d')
+                         for text_date in current_text_dates)
+
+    students_with_filtered_attendance = filter_students_attendance(group.students, selected_subject, set_text_dates)
+
+    teaching_pair_ids = get_teaching_pair_ids(teaching_lesson_id) * len(current_text_dates)
+
+    common_context_values = {
+        'students': tuple(filtered_student.get_dict() for filtered_student in students_with_filtered_attendance),
+        'week_dates': current_text_dates,
+        'teaching_pair_ids': teaching_pair_ids,
+        'can_expose_group_leader': can_expose_group_leader_value,
+        'selected_display_mode': selected_display_mode
+    }
+
+    return jsonify(**common_context_values)
+
+
 @app.route("/attendance", methods=('GET', 'POST'))
 def attendance():
     """Веб-страничка для отображения посещаемости"""
@@ -940,7 +1038,20 @@ def attendance():
     display_modes = ('Месяц', 'Неделя')
     selected_display_mode = request.values.get('selected_display_mode', 'Неделя')
 
-    current_text_dates = get_lesson_dates_by_teaching_lesson(teaching_lesson_id, selected_display_mode)
+    if selected_display_mode == 'Неделя':
+        first_date = datetime.today()
+        last_date = datetime.today()
+    else:
+        first_date = datetime.today().replace(day=1)
+        last_date = datetime.today().replace(day=monthrange(first_date.year, first_date.month)[1])
+    first_week_number = first_date.isocalendar()[1]
+    last_week_number = last_date.isocalendar()[1]
+    session['year'] = datetime.today().year
+    session['month'] = datetime.today().month
+    session['first_week_number'] = first_week_number
+    session['last_week_number'] = last_week_number
+    current_text_dates = get_lesson_dates_by_teaching_lesson(teaching_lesson_id, first_week_number,
+                                                             last_week_number, session['year'])
 
     set_text_dates = set(datetime.strptime(text_date[:10], '%d.%m.%Y').strftime('%Y-%m-%d')
                          for text_date in current_text_dates)
@@ -948,27 +1059,6 @@ def attendance():
     students_with_filtered_attendance = filter_students_attendance(group.students, selected_subject, set_text_dates)
 
     teaching_pair_ids = get_teaching_pair_ids(teaching_lesson_id) * len(current_text_dates)
-
-    subjects_dict = {'Иностранный язык': 'english',
-                     'История': 'history',
-                     'Математический анализ': 'maths',
-                     'Введение в программирование': 'basic_programming',
-                     'Теоретические основы информатики': 'basic_informatics',
-                     "Системы подготовки электронных документов": 'sped',
-                     'Основы речевого воздействия': 'language',
-                     'Русский язык для устной и письменной коммуникации': 'russian_language_for_communication',
-                     'Введение в программную инженерию': 'program_engineering',
-                     'Информатика': 'informatics',
-                     'Дискретная математика': 'discrete_maths',
-                     'Web-программирование': 'web_programming',
-                     'Системы подготовки электронных документов и ОП': 'sped_op',
-                     'Русский язык': 'russian_language',
-                     'Правоведение': 'pravovedenie',
-                     'Программирование': 'programming',
-                     'Практикум на ЭВМ по дисциплине "Программирование"': 'programming_practice',
-                     'Фундаментальная и компьютерная алгебра': 'computer_algebra',
-                     'Технологии программирования': 'tech_programming'}
-    english_subject_name = subjects_dict.get(selected_subject)
 
     common_context_values = {
         'course': course,
@@ -981,7 +1071,6 @@ def attendance():
         'week_dates': current_text_dates,
         'teaching_pair_ids': teaching_pair_ids,
         'can_expose_group_leader': can_expose_group_leader_value,
-        'english_subject_name': english_subject_name,
         'selected_display_mode': selected_display_mode,
         'display_modes': display_modes
     }

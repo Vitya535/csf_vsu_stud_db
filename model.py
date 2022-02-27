@@ -653,7 +653,9 @@ class Attendance(BaseModel):
         self.teaching_pair_id = teaching_pair_id
 
     def get_dict(self):
-        return {'lesson_attendance': self.lesson_attendance}
+        return {'lesson_attendance': self.lesson_attendance,
+                'teaching_pair_id': self.teaching_pair_id,
+                'lesson_date': self.lesson_date}
 
 
 class LessonsBeginning(db.Model):
