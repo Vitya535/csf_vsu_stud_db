@@ -37,7 +37,7 @@
                             <td class="align-middle">{{ subject_and_count_attend_lessons_count[1] }}</td>
                             <td class="align-middle">
                                 {% if count_lessons_with_pairs %}
-                                    {{ (subject_and_count_attend_lessons_count[1] / count_lessons_with_pairs) * 100 }}%
+                                    {{ ((subject_and_count_attend_lessons_count[1] / count_lessons_with_pairs) * 100)|round(2) }}%
                                 {% else %}
                                     0.0%
                                 {% endif %}
@@ -48,7 +48,7 @@
                         <td class="align-middle"><b>Средняя посещаемость</b></td>
                         <td class="align-middle"></td>
                         <td class="align-middle"></td>
-                        <td class="align-middle">{{ (list_of_attend_lessons_count|sum / list_of_teaching_lessons_with_pairs|sum) * 100 }}%</td>
+                        <td class="align-middle">{{ ((list_of_attend_lessons_count|sum / list_of_teaching_lessons_with_pairs|sum) * 100)|round(2) }}%</td>
                     </tr>
                 </tbody>
             </table>
