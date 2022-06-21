@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    {% block title %}
+        <title>Импорт данных</title>
+    {% endblock %}
+    {% include '_header.html' %}
+</head>
+<body>
+{% include '_menu.html' %}
+<div class="container">
+    <form enctype="multipart/form-data" method="post" action="{{ url_for('import_data', data_class_to_import=data_class_to_import) }}">
+        <label class="form-label" for="file_to_import">Выберите xls файл для импорта</label>
+        <input type="file" accept=".xls" class="form-control-file" name="file_to_import" id="file_to_import" />
+        <button class="btn btn-success mt-2" type="submit">
+            Импортировать данные
+        </button>
+    </form>
+</div>
+</body>
+</html>

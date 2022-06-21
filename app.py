@@ -1,6 +1,6 @@
 import os
-from calendar import monthrange
 from calendar import monthcalendar
+from calendar import monthrange
 from datetime import date
 from datetime import datetime
 from datetime import timedelta
@@ -9,6 +9,7 @@ from json import dumps
 from json import loads
 
 from flask import request, render_template, redirect, url_for, send_from_directory, jsonify, session
+from flask_excel import make_response_from_query_sets
 from flask_login import LoginManager, login_required, login_user, logout_user, current_user
 from sqlalchemy import not_
 from sqlalchemy.exc import IntegrityError
@@ -599,7 +600,7 @@ def curriculum_unit_copy(id):
         filter(StudGroup.semester == cu.stud_group.semester). \
         filter(not_(StudGroup.id.in_(
         db.session.query(CurriculumUnit.stud_group_id).
-            filter(CurriculumUnit.subject_id == cu.subject.id).subquery()))). \
+        filter(CurriculumUnit.subject_id == cu.subject.id).subquery()))). \
         order_by(StudGroup.num, StudGroup.subnum).all()
 
     stud_group_ids = set()
@@ -1317,6 +1318,48 @@ def multiple_edit():
             multiple_edit_records(object_from_form_data, ids_to_edit)
             return redirect(url_for(table_name))
     return render_template('multiple_edit.html', title=title, form=form)
+
+
+@app.route("/export/<data_class_to_export>")
+def export_data(data_class_to_export: str):
+    data_classes_to_export = {'teaching_lessons': (TeachingLessons, [
+        'can_expose_group_leader', 'lesson_type', 'day_number_denominator',
+        'day_number_numerator', 'pair_number_denominator', 'pair_number_numerator'
+    ]), 'teaching_pairs': (TeachingPairs, ['pair_number', 'time_of_beginning', 'time_of_ending']),
+                              'lessons_beginning': (
+                              LessonsBeginning, ['year', 'half_year', 'end_date', 'beginning_date'])}
+    data_class, class_fields = data_classes_to_export.get(data_class_to_export)
+    query_result = data_class.query.all()
+    return make_response_from_query_sets(query_result, class_fields, "xls")
+
+
+@app.route("/import/<data_class_to_import>", methods=('POST', 'GET'))
+def import_data(data_class_to_import: str):
+    if request.method == 'POST':
+        def teaching_pair_init_func(row):
+            teaching_pair_from_excel = TeachingPairs(row['pair_number'], row['time_of_beginning'], row['time_of_ending'])
+            return teaching_pair_from_excel
+
+        def teaching_lesson_init_func(row):
+            teaching_lesson_from_excel = TeachingLessons(row['pair_number_numerator'], row['day_number_numerator'],
+                                                         row['pair_number_denominator'], row['day_number_denominator'],
+                                                         row['can_expose_group_leader'], row['lesson_type'])
+            return teaching_lesson_from_excel
+
+        def lesson_beginning_init_func(row):
+            lesson_beginning_from_excel = LessonsBeginning(row['year'], row['half_year'], row['beginning_date'],
+                                                           row['end_date'])
+            return lesson_beginning_from_excel
+
+        data_classes_to_import = {'teaching_lessons': (TeachingLessons, teaching_lesson_init_func),
+                                  'teaching_pairs': (TeachingPairs, teaching_pair_init_func),
+                                  'lessons_beginning': (LessonsBeginning, lesson_beginning_init_func)}
+        data_class, data_class_func = data_classes_to_import.get(data_class_to_import)
+
+        request.save_to_database(field_name='file_to_import', session=db.session,
+                                 table=data_class, initializer=data_class_func)
+        return redirect(url_for(data_class_to_import), code=302)
+    return render_template('file_import.html', data_class_to_import=data_class_to_import)
 
 
 if __name__ == '__main__':
